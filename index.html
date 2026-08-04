@@ -1,254 +1,806 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEXUS — Gestão Pessoal com Supabase</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23141416'/%3E%3Cpolygon points='7,24 7,8 13,8 19,18 19,8 25,8 25,24 19,24 13,14 13,24' fill='%23f07030'/%3E%3C/svg%3E">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-/* ===== Estilos (idênticos ao original, preservados) ===== */
-:root {
-  --bg: #0e0e10; --bg2: #16161a; --bg3: #1e1e24; --bg4: #28282f; --bg5: #32323c;
-  --or: #f07030; --or2: #ff8c4a; --or3: #ffb380;
-  --text: #f0ede8; --t2: #a8a49e; --t3: #5e5a56;
-  --bdr: rgba(255,255,255,0.07); --bdr2: rgba(255,255,255,0.12);
-  --green: #3ecf8e; --blue: #4a9eff; --red: #ff5757; --yel: #ffb840; --purp: #a78bfa;
-  --r: 14px; --r2: 9px; --r3: 6px; --sb-w: 230px;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;overflow-x:hidden}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px}
-/* Sidebar */
-#sidebar{width:var(--sb-w);min-width:var(--sb-w);background:var(--bg2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform .28s}
-.logo{padding:22px 18px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px}
-.logo-icon{width:36px;height:36px}.logo-n{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800}.logo-s{font-size:.58rem;color:var(--t3)}
-.drive-status{margin:0 12px;padding:8px 12px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--bdr);display:flex;align-items:center;gap:8px;font-size:.7rem;cursor:pointer}
-.drive-dot{width:7px;height:7px;border-radius:50%;background:var(--t3)}.drive-dot.ok{background:var(--green);box-shadow:0 0 6px rgba(62,207,142,.5)}
-.nav{padding:10px;flex:1;overflow-y:auto}.nav-grp{margin-bottom:18px}.nav-lbl{font-size:.58rem;letter-spacing:2.5px;color:var(--t3);padding:0 10px;margin-bottom:5px}
-.nav-a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--r2);cursor:pointer;font-size:.83rem;color:var(--t2);transition:all .15s;border:none;background:none;width:100%;text-align:left}
-.nav-a:hover{background:var(--bg3);color:var(--text)}.nav-a.on{background:linear-gradient(135deg,rgba(240,112,48,.18),rgba(240,112,48,.08));color:var(--or2);border:1px solid rgba(240,112,48,.2)}.nav-a.on::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;background:var(--or)}
-.nbadge{margin-left:auto;background:var(--or);color:#fff;font-size:.6rem;padding:1px 6px;border-radius:20px}
-.sb-bottom{padding:12px;border-top:1px solid var(--bdr)}.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:49}.overlay.on{display:block}
-/* Main */
-#main{margin-left:var(--sb-w);flex:1;display:flex;flex-direction:column}#topbar{height:62px;background:rgba(22,22,26,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 24px;gap:14px;position:sticky;top:0;z-index:40}
-#ham{display:none;background:none;border:none;color:var(--t2);font-size:1.2rem;cursor:pointer}#ham:hover{background:var(--bg3)}#pg-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700}#pg-date{font-size:.68rem;color:var(--t3)}
-#save-ind{font-size:.68rem;display:flex;align-items:center;gap:5px;opacity:0}#save-ind.show{opacity:1}.si-dot{width:6px;height:6px;border-radius:50%;background:var(--t3)}#save-ind.saving .si-dot{background:var(--yel)}#save-ind.saved .si-dot{background:var(--green)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r2);font-size:.8rem;font-weight:500;cursor:pointer;border:none}.btn-p{background:linear-gradient(135deg,var(--or),var(--or2));color:#fff}.btn-g{background:var(--bg3);color:var(--t2);border:1px solid var(--bdr)}.btn-d{background:rgba(255,87,87,.1);color:var(--red);border:1px solid rgba(255,87,87,.2)}.btn-sm{padding:5px 11px}
-#content{padding:24px;flex:1;overflow-y:auto}.page{display:none;animation:fadeUp .25s}.page.on{display:block}@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}.stat{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:20px;position:relative;transition:border-color .2s}.stat:hover{border-color:var(--bdr2)}.stat-lbl{font-size:.65rem;color:var(--t3);letter-spacing:1.5px;margin-bottom:10px}.stat-n{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800}.stat-sub{font-size:.7rem;color:var(--t3);margin-top:6px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:20px}
-.sec-hd{display:flex;justify-content:space-between;margin-bottom:16px}.sec-ttl{font-family:'Syne',sans-serif;font-weight:700}
-.tlist{display:flex;flex-direction:column;gap:8px}.tc{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:13px 15px;display:flex;align-items:center;gap:12px;cursor:pointer;position:relative}.tc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--or)}.tc.casa::before{background:var(--blue)}.tc.servico::before{background:var(--green)}.tc.done{opacity:.45}.tcheck{width:20px;height:20px;border-radius:50%;border:2px solid var(--or);display:flex;align-items:center;justify-content:center}.tcheck.on{background:var(--or);color:#fff}.tinfo{flex:1}.ttl{font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tmeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.ttime{font-size:.68rem;color:var(--t3)}.bx{font-size:.6rem;font-weight:600;padding:2px 8px;border-radius:20px}.bx-or{background:rgba(240,112,48,.15);color:var(--or2)}.bx-bl{background:rgba(74,158,255,.15);color:var(--blue)}.bx-gr{background:rgba(62,207,142,.15);color:var(--green)}.bx-rd{background:rgba(255,87,87,.15);color:var(--red)}.bx-gy{background:var(--bg4);color:var(--t2)}.tprio{margin-left:auto;display:flex;gap:7px}.pdot{width:7px;height:7px;border-radius:50%}.p-a{background:var(--red)}.p-m{background:var(--yel)}.p-b{background:var(--green)}
-.fltrs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}.fb{padding:5px 13px;border-radius:20px;font-size:.74rem;cursor:pointer;border:1px solid var(--bdr);background:transparent;color:var(--t3)}.fb.on{background:rgba(240,112,48,.12);color:var(--or2);border-color:rgba(240,112,48,.4)}
-.empty{text-align:center;padding:48px 20px;color:var(--t3)}.prog-bar{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}.prog-fill{height:100%;background:linear-gradient(90deg,var(--or),var(--or2));transition:width .6s}
-.bar-chart{display:flex;align-items:flex-end;gap:6px;height:120px}.bc-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}.bc-bar{width:100%;border-radius:4px 4px 0 0;transition:height .5s;min-height:2px}.donut-wrap{display:flex;align-items:center;gap:20px}.cal-hd{display:flex;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--bdr)}.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}.cal-dow{padding:8px 0;text-align:center;font-size:.6rem}.cal-d{min-height:52px;padding:6px;cursor:pointer}.cal-d.today{background:rgba(240,112,48,.1);border-radius:var(--r3)}.cal-dn{font-size:.76rem}.tl{display:flex;flex-direction:column;gap:0}.tl-it{display:flex;gap:14px;padding-bottom:16px}.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--or)}.modal{background:var(--bg2);border:1px solid var(--bdr2);border-radius:18px;max-width:560px;width:100%}.mhd{padding:20px 24px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between}.mbody{padding:24px}.mft{padding:16px 24px;border-top:1px solid var(--bdr);display:flex;justify-content:flex-end;gap:8px}.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:15px}.fl{font-size:.65rem;color:var(--t3);letter-spacing:1.5px}.fi,.fs,.fta{background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--r2);color:var(--text);padding:10px 13px;width:100%}.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.pcard{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer}.pavatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--bg4),var(--bg5));display:flex;align-items:center;justify-content:center}#toasts{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px}.toast{background:var(--bg3);border-radius:var(--r);padding:12px 18px;font-size:.8rem;display:flex;align-items:center;gap:10px;animation:toastIn .28s}@keyframes toastIn{from{transform:translateX(110%)}to{transform:translateX(0)}}.mover{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center}.mover.on{display:flex}
-@media(max-width:900px){#sidebar{transform:translateX(-100%)}#sidebar.on{transform:translateX(0)}#main{margin-left:0}#ham{display:block}.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extrator de Pedidos PDF com OCR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-section.dragging {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .file-input-label {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .progress-container {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+
+        .data-section {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .data-section h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .header-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .info-box:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            word-break: break-word;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: #f0f2ff;
+            border-bottom: 2px solid #667eea;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .number-cell {
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+            transform: translateY(-2px);
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef5350;
+            display: flex;
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #66bb6a;
+            display: flex;
+        }
+
+        .message.info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #42a5f5;
+            display: flex;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .upload-section {
+                padding: 25px;
+            }
+
+            .upload-icon {
+                font-size: 36px;
+            }
+
+            .upload-text {
+                font-size: 16px;
+            }
+
+            .header-info {
+                grid-template-columns: 1fr;
+            }
+
+            th, td {
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            button {
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+
+        .ocr-status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .total-row {
+            background: #f0f2ff;
+            font-weight: 600;
+            border-top: 2px solid #667eea;
+        }
+
+        .total-row td {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
-<div class="overlay" id="ov" onclick="closeSb()"></div>
-<aside id="sidebar">
-  <div class="logo"><svg class="logo-icon" viewBox="0 0 36 36"><rect width="36" height="36" rx="10" fill="#1e1e24"/><polygon points="7,27 7,9 13,9 21,21 21,9 29,9 29,27 23,27 15,15 15,27" fill="url(#lg2)"/></svg><div class="logo-text"><div class="logo-n">NEXUS</div><div class="logo-s">Gestão Pessoal</div></div></div>
-  <div class="drive-status" id="drive-status-btn" onclick="openCloudModal()"><div class="drive-dot" id="drive-dot"></div><span id="drive-status-txt">Conectar Supabase</span></div>
-  <nav class="nav"><div class="nav-grp"><div class="nav-lbl">Visão Geral</div><button class="nav-a on" data-pg="dashboard"><span class="nav-ic">⬡</span> Dashboard<span class="nbadge" id="nb-dash">0</span></button><button class="nav-a" data-pg="agenda"><span class="nav-ic">◫</span> Agenda</button></div><div class="nav-grp"><div class="nav-lbl">Módulos</div><button class="nav-a" data-pg="trabalho"><span class="nav-ic">◈</span> Trabalho<span class="nbadge" id="nb-trab">0</span></button><button class="nav-a" data-pg="casa"><span class="nav-ic">⬟</span> Casa</button><button class="nav-a" data-pg="servicos"><span class="nav-ic">◇</span> Serviços</button></div><div class="nav-grp"><div class="nav-lbl">Sistema</div><button class="nav-a" data-pg="prestadores"><span class="nav-ic">◎</span> Prestadores</button><button class="nav-a" data-pg="historico"><span class="nav-ic">◌</span> Histórico</button></div></nav>
-  <div class="sb-bottom"><div class="sb-version">NEXUS v2.0 · Supabase</div></div>
-</aside>
-<div id="main"><header id="topbar"><button id="ham" onclick="toggleSb()">☰</button><div class="topbar-info"><div id="pg-title">Dashboard</div><div id="pg-date"></div></div><div id="topbar-actions"><div id="save-ind"><div class="si-dot"></div><span id="save-txt">Sincronizado</span></div><button class="btn btn-g btn-sm" onclick="exportData()">↓ Export</button><button class="btn btn-p" id="btn-new">+ Nova Tarefa</button></div></header>
-<div id="content">
-  <div class="page on" id="pg-dashboard"><div id="dash-alerts"></div><div class="grid4"><div class="stat"><div class="stat-lbl">Hoje</div><div class="stat-n" id="s-hoje">0</div><div class="stat-sub">tarefas</div></div><div class="stat r"><div class="stat-lbl">Atrasadas</div><div class="stat-n" id="s-atras">0</div><div class="stat-sub">atenção</div></div><div class="stat"><div class="stat-lbl">Pendentes</div><div class="stat-n" id="s-pend">0</div><div class="stat-sub">abertas</div></div><div class="stat g"><div class="stat-lbl">Concluídas</div><div class="stat-n" id="s-conc">0</div><div class="stat-sub">este mês</div></div></div><div class="card mb2"><div class="row"><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span id="prog-lbl">0 de 0 tarefas hoje</span><span id="prog-pct">0%</span></div><div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div></div></div></div><div class="grid2"><div class="card"><div class="sec-hd"><div class="sec-ttl">Produtividade Semanal</div></div><div class="bar-chart" id="chart-semanal"></div><div>Total semana: <span id="chart-total-week">0</span> | Média: <span id="chart-avg">0</span></div></div><div class="card"><div class="sec-hd"><div class="sec-ttl">Por Categoria</div></div><div class="donut-wrap" id="donut-wrap"><div class="empty">Sem dados</div></div></div></div><div class="grid2"><div><div class="sec-hd"><div class="sec-ttl">Tarefas de Hoje</div></div><div class="tlist" id="d-hoje"></div></div><div><div class="sec-hd"><div class="sec-ttl">Próximas</div></div><div class="tlist" id="d-prox"></div></div></div><div><div class="sec-hd"><div class="sec-ttl">Timeline de Hoje</div></div><div class="card"><div class="tl" id="d-tl"></div></div></div></div>
-  <div class="page" id="pg-agenda"><div class="grid2"><div class="card card-flush"><div class="cal-hd"><div class="cal-ttl" id="cal-ttl">—</div><div class="cal-nav"><button class="cal-btn" id="cal-prev">‹</button><button class="cal-btn" id="cal-next">›</button></div></div><div class="cal-grid" id="cal-grid"></div></div><div><div class="sec-hd"><div class="sec-ttl" id="cal-day-ttl">Selecione um dia</div><button class="btn btn-p btn-sm" id="cal-add-btn" style="display:none" onclick="openModalForDate()">+ Tarefa</button></div><div class="tlist" id="cal-day-list"><div class="empty">Clique em um dia</div></div></div></div><div><div class="sec-hd"><div class="sec-ttl">Todas as Tarefas</div><div class="fltrs"><button class="fb on" data-af="all">Todas</button><button class="fb" data-af="trabalho">Trabalho</button><button class="fb" data-af="casa">Casa</button><button class="fb" data-af="servico">Serviços</button></div></div><div class="tlist" id="ag-all"></div></div></div>
-  <div class="page" id="pg-trabalho"><div class="grid4"><div class="stat"><div class="stat-lbl">Total</div><div class="stat-n" id="wk-tot">0</div></div><div class="stat r"><div class="stat-lbl">Atrasados</div><div class="stat-n" id="wk-atr">0</div></div><div class="stat b"><div class="stat-lbl">Em Andamento</div><div class="stat-n" id="wk-and">0</div></div><div class="stat g"><div class="stat-lbl">Concluídos</div><div class="stat-n" id="wk-con">0</div></div></div><div class="sec-hd"><div class="sec-ttl">Processos</div><div class="fltrs"><button class="fb on" data-wf="all">Todos</button><button class="fb" data-wf="pendente">Pendentes</button><button class="fb" data-wf="em_andamento">Em Andamento</button><button class="fb" data-wf="concluido">Concluídos</button></div><button class="btn btn-p btn-sm" onclick="openModal('task','trabalho')">+ Processo</button></div><div class="tlist" id="trab-list"></div></div>
-  <div class="page" id="pg-casa"><div class="sec-hd"><div class="sec-ttl">Tarefas da Casa</div><button class="btn btn-p btn-sm" onclick="openModal('task','casa')">+ Tarefa</button></div><div class="fltrs"><button class="fb on" data-cf="all">Todas</button><button class="fb" data-cf="pendente">Pendentes</button><button class="fb" data-cf="em_andamento">Em Andamento</button><button class="fb" data-cf="concluido">Concluídas</button></div><div class="tlist" id="casa-list"></div></div>
-  <div class="page" id="pg-servicos"><div class="sec-hd"><div class="sec-ttl">Serviços Avulsos</div><button class="btn btn-p btn-sm" onclick="openModal('task','servico')">+ Serviço</button></div><div style="display:flex;gap:20px;background:var(--bg2);padding:14px;border-radius:var(--r);margin-bottom:12px"><div><div class="stat-lbl">Total em Aberto</div><div id="svc-total-val">R$ 0,00</div></div><div><div class="stat-lbl">Pagos (mês)</div><div id="svc-pago-val">R$ 0,00</div></div></div><div class="fltrs"><button class="fb on" data-sf="all">Todos</button><button class="fb" data-sf="nao_iniciado">Não Iniciado</button><button class="fb" data-sf="em_andamento">Em Andamento</button><button class="fb" data-sf="concluido">Concluído</button><button class="fb" data-sf="pago">Pago</button></div><div class="tlist" id="svc-list"></div></div>
-  <div class="page" id="pg-prestadores"><div class="sec-hd"><div class="sec-ttl">Prestadores</div><button class="btn btn-p btn-sm" onclick="openModal('prestador')">+ Prestador</button></div><div id="prest-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div></div>
-  <div class="page" id="pg-historico"><div class="sec-hd"><div class="sec-ttl">Histórico</div><button class="btn btn-g btn-sm" onclick="clearHist()">Limpar</button></div><div class="card"><div class="tl" id="hist-list"></div></div></div>
-</div></div>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Extrator de Pedidos PDF</h1>
+            <p>Converta pedidos escaneados em planilhas Excel com OCR</p>
+        </div>
 
-<!-- MODAIS -->
-<div class="mover" id="m-task"><div class="modal"><div class="mhd"><div class="mttl" id="m-task-ttl">Nova Tarefa</div><button class="mcls" onclick="closeModal('m-task')">✕</button></div><div class="mbody"><div class="fg"><label class="fl">Tipo</label><select class="fs" id="f-tipo"><option value="trabalho">◈ Trabalho</option><option value="casa">⬟ Casa</option><option value="servico">◇ Serviço</option></select></div><div class="fg"><label class="fl">Título *</label><input class="fi" id="f-titulo"></div><div class="fg"><label class="fl">Descrição</label><textarea class="fta" id="f-desc"></textarea></div><div id="ex-trab"><div class="dv"></div><div class="fg2"><div class="fg"><label class="fl">Nº Processo</label><input class="fi" id="f-proc"></div><div class="fg"><label class="fl">Fornecedor</label><input class="fi" id="f-forn"></div></div><div class="fg"><label class="fl">Pendências</label><textarea class="fta" id="f-pend"></textarea></div></div><div id="ex-svc" style="display:none"><div class="dv"></div><div class="fg2"><div class="fg"><label class="fl">Prestador</label><select class="fs" id="f-prest"><option value="">Selecionar</option></select></div><div class="fg"><label class="fl">Valor (R$)</label><input class="fi" id="f-val" type="number" step="0.01"></div></div><div class="fg"><label class="fl">Data Pagamento</label><input class="fi" id="f-dpag" type="date"></div></div><div class="fg3"><div class="fg"><label class="fl">Data *</label><input class="fi" id="f-data" type="date"></div><div class="fg"><label class="fl">Início</label><input class="fi" id="f-ini" type="time"></div><div class="fg"><label class="fl">Fim</label><input class="fi" id="f-fim" type="time"></div></div><div class="fg2"><div class="fg"><label class="fl">Prioridade</label><select class="fs" id="f-prio"><option value="alta">Alta</option><option value="media" selected>Média</option><option value="baixa">Baixa</option></select></div><div class="fg"><label class="fl">Status</label><select class="fs" id="f-stat"><option value="pendente">Pendente</option><option value="nao_iniciado">Não Iniciado</option><option value="em_andamento">Em Andamento</option><option value="concluido">Concluído</option><option value="pago">Pago</option></select></div></div><div class="fg"><label class="fl">Recorrência</label><select class="fs" id="f-rec"><option value="">Sem recorrência</option><option value="diaria">Diária</option><option value="semanal">Semanal</option><option value="mensal">Mensal</option></select></div></div><div class="mft"><button class="btn btn-g" onclick="closeModal('m-task')">Cancelar</button><button class="btn btn-p" id="btn-save-task">Salvar</button></div></div></div>
-<div class="mover" id="m-det"><div class="modal"><div class="mhd"><div class="mttl" id="m-det-ttl">Detalhe</div><button class="mcls" onclick="closeModal('m-det')">✕</button></div><div class="mbody" id="m-det-body"></div><div class="mft"><button class="btn btn-d btn-sm" id="btn-del">Excluir</button><button class="btn btn-g btn-sm" id="btn-dup">Duplicar</button><button class="btn btn-g btn-sm" onclick="closeModal('m-det')">Fechar</button><button class="btn btn-p btn-sm" id="btn-edit">✎ Editar</button></div></div></div>
-<div class="mover" id="m-prest"><div class="modal"><div class="mhd"><div class="mttl">Novo Prestador</div><button class="mcls" onclick="closeModal('m-prest')">✕</button></div><div class="mbody"><div class="fg"><label class="fl">Nome *</label><input class="fi" id="p-nome"></div><div class="fg2"><div class="fg"><label class="fl">Especialidade</label><input class="fi" id="p-esp"></div><div class="fg"><label class="fl">Telefone</label><input class="fi" id="p-tel"></div></div><div class="fg"><label class="fl">Email</label><input class="fi" id="p-email" type="email"></div><div class="fg"><label class="fl">Observações</label><textarea class="fta" id="p-obs"></textarea></div></div><div class="mft"><button class="btn btn-g" onclick="closeModal('m-prest')">Cancelar</button><button class="btn btn-p" id="btn-save-prest">Salvar</button></div></div></div>
-<div class="mover" id="m-cloud"><div class="modal" style="max-width:440px"><div class="mhd"><div class="mttl">Supabase Cloud</div><button class="mcls" onclick="closeModal('m-cloud')">✕</button></div><div class="mbody txt-center"><div style="background:linear-gradient(135deg,#1e8e3e,#34a853);width:56px;height:56px;margin:0 auto 16px;border-radius:14px;display:flex;align-items:center;justify-content:center"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#fff" stroke-width="1.5"/></svg></div><div style="font-weight:700;margin-bottom:8px">Sincronização Automática</div><div style="font-size:.82rem;color:var(--t2);margin-bottom:20px">O sistema já está configurado com seu projeto Supabase. Basta criar um usuário e preencher os campos abaixo uma única vez.</div><div id="cloud-auth-section"><div class="fg"><label class="fl">Email</label><input class="fi" id="login-email" type="email"></div><div class="fg"><label class="fl">Senha</label><input class="fi" id="login-password" type="password"></div><div class="row" style="justify-content:center;gap:12px"><button class="btn btn-p btn-sm" onclick="supabaseSignIn()">Entrar</button><button class="btn btn-g btn-sm" onclick="supabaseSignUp()">Criar Conta</button></div></div><div id="cloud-connected-section" style="display:none"><div style="background:rgba(62,207,142,.1);border-radius:var(--r);padding:14px;margin-bottom:16px"><div style="color:var(--green);font-weight:600">✓ Conectado</div><div id="cloud-user-email" style="font-size:.78rem">—</div></div><div style="display:flex;gap:8px;justify-content:center"><button class="btn btn-p btn-sm" onclick="syncToSupabase(true)">Sincronizar Agora</button><button class="btn btn-g btn-sm" onclick="loadFromSupabase()">Carregar do Cloud</button><button class="btn btn-d btn-sm" onclick="supabaseLogout()">Desconectar</button></div></div></div><div class="mft"><button class="btn btn-g" onclick="closeModal('m-cloud')">Fechar</button></div></div></div>
-<div id="toasts"></div>
+        <div class="content">
+            <div id="message" class="message"></div>
 
-<script>
-// ═══════════════════════════════════════════════════════════
-// CONFIGURAÇÕES DO SUPABASE (já preenchidas com seus dados)
-// ═══════════════════════════════════════════════════════════
-const SUPABASE_URL = "https://rpdrhmxqaxgnmkofmvag.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwZHJobXhxYXhnbm1rb2ZtdmFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMTcxMTUsImV4cCI6MjA5Njc5MzExNX0.HOfWcV_Bq4vGEpFNvjTxh8tl8z3mRe_-1Ex-Za6BZvo";
-// ⚠️ PREENCHA ABAIXO COM O E-MAIL E SENHA DO USUÁRIO QUE VOCÊ CRIOU NO SUPABASE AUTH
-const SUPABASE_EMAIL = "";     // ← EX: "nexus@meusistema.com"
-const SUPABASE_PASSWORD = "";  // ← EX: "senha123"
-// ═══════════════════════════════════════════════════════════
+            <div class="upload-section" id="uploadArea">
+                <div class="upload-icon">📋</div>
+                <p class="upload-text">Arraste seu PDF aqui ou <span class="file-input-label">clique para selecionar</span></p>
+                <p class="upload-subtext">Arquivos aceitos: PDF (escaneado ou digital)</p>
+                <input type="file" id="fileInput" accept=".pdf" />
+            </div>
 
-'use strict';
-let tasks = [], prestList = [], hist = [];
-let supabaseClient = null, sbSession = null, syncTimer = null;
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Inicializando...</div>
+            </div>
 
-// Funções auxiliares
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function pad(n){ return n<10?'0'+n:String(n); }
-function todayStr(){ let d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
-function fmtDate(s){ if(!s) return '—'; let p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
-function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function isOverdue(t){ if(t.status==='concluido'||t.status==='pago') return false; return t.data && t.data < todayStr(); }
-function addHist(msg){ hist.unshift({ts:new Date().toISOString(),msg:msg}); if(hist.length>300) hist.length=300; persistLocal(); }
+            <div class="data-section" id="dataSection">
+                <h2>📋 Informações do Pedido</h2>
 
-// Persistência local e sincronização
-function persistLocal() {
-  localStorage.setItem('nx_tasks', JSON.stringify(tasks));
-  localStorage.setItem('nx_prest', JSON.stringify(prestList));
-  localStorage.setItem('nx_hist', JSON.stringify(hist));
-  scheduleSync();
-}
-function scheduleSync() { if(!supabaseClient||!sbSession) return; clearTimeout(syncTimer); showSaveInd('saving'); syncTimer = setTimeout(() => syncToSupabase(false), 2000); }
-function showSaveInd(state){ let ind=document.getElementById('save-ind'), dot=ind.querySelector('.si-dot'), txt=document.getElementById('save-txt'); ind.classList.add('show'); if(state==='saving'){ ind.classList.add('saving'); txt.textContent='Sincronizando...'; dot.style.background='var(--yel)'; } else if(state==='saved'){ ind.classList.add('saved'); txt.textContent='Na nuvem'; dot.style.background='var(--green)'; setTimeout(()=>ind.classList.remove('show'),2500); } else if(state==='error'){ txt.textContent='Erro sync'; dot.style.background='var(--red)'; } }
+                <div class="header-info">
+                    <div class="info-box">
+                        <div class="info-label">Centro de Custos</div>
+                        <div class="info-value" id="centroCustos">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Número do Pedido</div>
+                        <div class="info-value" id="numeroPedido">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Data do Pedido</div>
+                        <div class="info-value" id="dataPedido">-</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Total do Pedido</div>
+                        <div class="info-value" id="totalPedido">-</div>
+                    </div>
+                </div>
 
-async function syncToSupabase(showToast=true){
-  if(!supabaseClient||!sbSession) return;
-  try{
-    const user=sbSession.user;
-    await supabaseClient.from('tasks').upsert(tasks.map(t=>({...t,user_id:user.id})),{onConflict:'id'});
-    await supabaseClient.from('prestadores').upsert(prestList.map(p=>({...p,user_id:user.id})),{onConflict:'id'});
-    await supabaseClient.from('historico').upsert(hist.map(h=>({...h,user_id:user.id})),{onConflict:'id'});
-    showSaveInd('saved'); if(showToast) toast('Dados sincronizados!','s');
-  } catch(e){ showSaveInd('error'); if(showToast) toast('Erro ao sincronizar.','e'); }
-}
+                <h2>📦 Itens do Pedido</h2>
+                <div class="table-wrapper">
+                    <table id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th>Item #</th>
+                                <th>Descrição</th>
+                                <th>Unidade</th>
+                                <th style="text-align: right;">Quantidade</th>
+                                <th style="text-align: right;">$ Unit</th>
+                                <th style="text-align: right;">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="6" class="empty-state">
+                                    <div class="empty-state-icon">📭</div>
+                                    <div>Nenhum item extraído</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-async function loadFromSupabase(){
-  if(!supabaseClient||!sbSession){ toast('Conecte ao Supabase.','e'); return; }
-  try{
-    const user=sbSession.user;
-    const {data:tsk}=await supabaseClient.from('tasks').select('*').eq('user_id',user.id);
-    const {data:pre}=await supabaseClient.from('prestadores').select('*').eq('user_id',user.id);
-    const {data:his}=await supabaseClient.from('historico').select('*').eq('user_id',user.id);
-    if(tsk) tasks=tsk; if(pre) prestList=pre; if(his) hist=his;
-    persistLocal(); renderPage(curPage); toast('Dados carregados da nuvem!','s'); closeModal('m-cloud');
-  } catch(e){ toast('Falha ao carregar.','e'); }
-}
+                <div class="button-group">
+                    <button class="btn-primary" onclick="exportToExcel()">
+                        📊 Exportar para Excel
+                    </button>
+                    <button class="btn-secondary" onclick="resetForm()">
+                        🔄 Processar Novo PDF
+                    </button>
+                </div>
+            </div>
+        </div>
 
-// Autenticação automática (login com conta fixa)
-async function autoLoginAndSync() {
-  if(!SUPABASE_EMAIL || !SUPABASE_PASSWORD){
-    console.warn("Credenciais não configuradas. Abrindo modal.");
-    openCloudModal();
-    return;
-  }
-  try {
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data, error } = await client.auth.signInWithPassword({
-      email: SUPABASE_EMAIL,
-      password: SUPABASE_PASSWORD
-    });
-    if (error) throw error;
-    supabaseClient = client;
-    sbSession = data.session;
-    localStorage.setItem('sb_user', JSON.stringify({ email: SUPABASE_EMAIL }));
-    updateCloudUI();
-    await loadFromSupabase();
-    toast('Conectado automaticamente ao Supabase!', 's');
-  } catch(e) {
-    console.error(e);
-    openCloudModal();
-  }
-}
+        <div class="footer">
+            <p>Sistema de extração com OCR (Optical Character Recognition) • Suporta PDFs escaneados e digitais</p>
+        </div>
+    </div>
 
-async function supabaseSignIn(){
-  const email=document.getElementById('login-email').value.trim(), pass=document.getElementById('login-password').value;
-  if(!email||!pass){ toast('Email e senha obrigatórios.','e'); return; }
-  try{
-    const client=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const {data,error}=await client.auth.signInWithPassword({email,password:pass});
-    if(error) throw error;
-    supabaseClient=client; sbSession=data.session; localStorage.setItem('sb_user',JSON.stringify({email}));
-    updateCloudUI(); await loadFromSupabase(); toast('Conectado!','s'); closeModal('m-cloud');
-  } catch(e){ toast('Erro: '+e.message,'e'); }
-}
+    <!-- Bibliotecas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx.js/8.5.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
 
-async function supabaseSignUp(){
-  const email=document.getElementById('login-email').value.trim(), pass=document.getElementById('login-password').value;
-  if(!email||!pass){ toast('Email e senha obrigatórios.','e'); return; }
-  try{
-    const client=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const {error}=await client.auth.signUp({email,password:pass});
-    if(error) throw error;
-    toast('Conta criada! Faça login.','s');
-  } catch(e){ toast('Erro: '+e.message,'e'); }
-}
+    <script>
+        // Configuração do PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-async function supabaseLogout(){ if(supabaseClient) await supabaseClient.auth.signOut(); supabaseClient=null; sbSession=null; localStorage.removeItem('sb_user'); updateCloudUI(); toast('Desconectado.','s'); closeModal('m-cloud'); }
+        // Elementos do DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const message = document.getElementById('message');
+        const dataSection = document.getElementById('dataSection');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
 
-function updateCloudUI(){
-  const dot=document.getElementById('drive-dot'), txt=document.getElementById('drive-status-txt');
-  if(sbSession){ dot.className='drive-dot ok'; txt.textContent='Cloud ativo'; document.getElementById('save-ind').classList.add('show'); document.getElementById('save-txt').textContent='Sincronizado'; document.querySelector('#save-ind .si-dot').style.background='var(--green)'; }
-  else { dot.className='drive-dot'; txt.textContent='Conectar Supabase'; document.getElementById('save-ind').classList.remove('show'); }
-  const authDiv=document.getElementById('cloud-auth-section'), connDiv=document.getElementById('cloud-connected-section');
-  if(sbSession){ authDiv.style.display='none'; connDiv.style.display='block'; const saved=localStorage.getItem('sb_user'); if(saved) try{let u=JSON.parse(saved); document.getElementById('cloud-user-email').innerText=u.email;}catch(e){} }
-  else { authDiv.style.display='block'; connDiv.style.display='none'; }
-}
-function openCloudModal(){ updateCloudUI(); document.getElementById('m-cloud').classList.add('on'); }
+        let extractedData = null;
 
-// Toda a lógica de renderização (idêntica ao original, preservada)
-let curPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Dashboard',agenda:'Agenda',trabalho:'Trabalho',casa:'Casa',servicos:'Serviços',prestadores:'Prestadores',historico:'Histórico'};
-function goTo(pg){ document.querySelectorAll('.page').forEach(el=>el.classList.remove('on')); document.getElementById('pg-'+pg).classList.add('on'); document.querySelectorAll('.nav-a').forEach(b=>b.classList.remove('on')); document.querySelector(`.nav-a[data-pg="${pg}"]`).classList.add('on'); document.getElementById('pg-title').innerText=PAGE_TITLES[pg]||pg; curPage=pg; renderPage(pg); }
-function renderPage(pg){ if(pg==='dashboard') renderDash(); if(pg==='agenda') renderAgenda(); if(pg==='trabalho') renderTrab(); if(pg==='casa') renderCasa(); if(pg==='servicos') renderSvc(); if(pg==='prestadores') renderPrest(); if(pg==='historico') renderHist(); updateBadges(); }
+        // Eventos de upload
+        uploadArea.addEventListener('click', () => fileInput.click());
 
-const TIPO_LBL={trabalho:'Trabalho',casa:'Casa',servico:'Serviço'}, STAT_LBL={pendente:'Pendente',nao_iniciado:'Não Iniciado',em_andamento:'Em Andamento',concluido:'Concluído',pago:'Pago'}, PRIO_LBL={alta:'Alta',media:'Média',baixa:'Baixa'}, TIPO_BX={trabalho:'bx-or',casa:'bx-bl',servico:'bx-gr'}, STAT_BX={pendente:'bx-yl',nao_iniciado:'bx-gy',em_andamento:'bx-bl',concluido:'bx-gr',pago:'bx-pu'}, PRIO_BX={alta:'bx-rd',media:'bx-yl',baixa:'bx-gr'}, PRIO_DOT={alta:'p-a',media:'p-m',baixa:'p-b'}, TIPO_CLS={casa:'casa',servico:'servico',trabalho:''};
-function tcHTML(t){ let done=(t.status==='concluido'||t.status==='pago')?'on':''; let doneCls=done?'done':''; let tipoCls=TIPO_CLS[t.tipo]||''; let timeTxt=t.inicio?(t.inicio+(t.fim?' – '+t.fim:'')):(t.data?fmtDate(t.data):'—'); let procBx=t.processo?'<span class="bx bx-gy">'+escH(t.processo)+'</span>':''; let overBx=isOverdue(t)?'<span class="bx bx-rd">⚠ Atrasado</span>':''; let checkTxt=done?'✓':''; let valBx=(t.tipo==='servico'&&t.valor)?'<span class="bx bx-gr">R$ '+Number(t.valor).toFixed(2).replace('.',',')+'</span>':''; return `<div class="tc ${tipoCls} ${doneCls}" data-id="${t.id}"><div class="tcheck ${done}" data-chk="${t.id}">${checkTxt}</div><div class="tinfo"><div class="ttl">${escH(t.titulo)}</div><div class="tmeta"><span class="ttime">${timeTxt}</span><span class="bx ${TIPO_BX[t.tipo]}">${TIPO_LBL[t.tipo]}</span><span class="bx ${STAT_BX[t.status]}">${STAT_LBL[t.status]}</span>${procBx}${overBx}${valBx}</div></div><div class="tprio"><span class="bx ${PRIO_BX[t.prioridade]}">${PRIO_LBL[t.prioridade]}</span><div class="pdot ${PRIO_DOT[t.prioridade]}"></div></div></div>`; }
-function emptyHTML(msg){return `<div class="empty"><span class="empty-ic">◌</span><div class="empty-tx">${msg}</div></div>`;}
-function toggleDone(id){ let t=tasks.find(x=>x.id===id); if(!t) return; let wasDone=(t.status==='concluido'||t.status==='pago'); t.status=wasDone?'pendente':'concluido'; t.atualizado=new Date().toISOString(); addHist(`"${t.titulo}" → ${STAT_LBL[t.status]}`); if(!wasDone&&t.recorrencia) geraProximaRec(t); renderPage(curPage); }
-function geraProximaRec(t){ let d=new Date(t.data+'T12:00:00'); if(t.recorrencia==='diaria') d.setDate(d.getDate()+1); if(t.recorrencia==='semanal') d.setDate(d.getDate()+7); if(t.recorrencia==='mensal') d.setMonth(d.getMonth()+1); let next=JSON.parse(JSON.stringify(t)); next.id=uid(); next.status='pendente'; next.data=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); next.criado=new Date().toISOString(); next.atualizado=new Date().toISOString(); tasks.push(next); addHist(`Próxima recorrência de "${t.titulo}" → ${fmtDate(next.data)}`); persistLocal(); }
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
 
-function renderDash(){ let td=todayStr(); let thisM=new Date().toISOString().slice(0,7); let todayTasks=tasks.filter(t=>t.data===td); let atras=tasks.filter(isOverdue); let pend=tasks.filter(t=>t.status==='pendente'||t.status==='nao_iniciado'); let conc=tasks.filter(t=>t.status==='concluido'&&t.data&&t.data.startsWith(thisM)); document.getElementById('s-hoje').innerText=todayTasks.length; document.getElementById('s-atras').innerText=atras.length; document.getElementById('s-pend').innerText=pend.length; document.getElementById('s-conc').innerText=conc.length; let alerts=atras.length?`<div class="alert">⚠ ${atras.length} atrasada(s)</div>`:''; document.getElementById('dash-alerts').innerHTML=alerts; let sorted=todayTasks.slice().sort((a,b)=>(a.inicio||'').localeCompare(b.inicio||'')); document.getElementById('d-hoje').innerHTML=sorted.length?sorted.slice(0,6).map(tcHTML).join(''):emptyHTML('Sem tarefas hoje'); let up=tasks.filter(t=>t.data>td&&t.status!=='concluido'&&t.status!=='pago').sort((a,b)=>a.data.localeCompare(b.data)).slice(0,5); document.getElementById('d-prox').innerHTML=up.length?up.map(tcHTML).join(''):emptyHTML('Sem próximas'); let done=todayTasks.filter(t=>t.status==='concluido'||t.status==='pago').length; let pct=todayTasks.length?Math.round(done/todayTasks.length*100):0; document.getElementById('prog-lbl').innerText=done+'/'+todayTasks.length; document.getElementById('prog-fill').style.width=pct+'%'; document.getElementById('prog-pct').innerText=pct+'%'; let tlHtml=sorted.length?sorted.map(t=>`<div class="tl-it"><div class="tl-dc"><div class="tl-dot ${t.tipo==='casa'?'b':t.tipo==='servico'?'g':''}"></div><div class="tl-ln"></div></div><div class="tl-bd"><div class="tl-tm">${t.inicio||'—'}${t.fim?' → '+t.fim:''}</div><div class="tl-tx">${escH(t.titulo)}</div><div class="tl-tg">${TIPO_LBL[t.tipo]} · ${STAT_LBL[t.status]}</div></div></div>`).join(''):emptyHTML('Sem atividades'); document.getElementById('d-tl').innerHTML=tlHtml; renderChartSemanal(); renderDonut(); }
-function renderChartSemanal(){ let days=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'], today=new Date(), cols=[], total=0; for(let i=6;i>=0;i--){ let d=new Date(today); d.setDate(today.getDate()-i); let iso=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); let cnt=tasks.filter(t=>(t.status==='concluido'||t.status==='pago')&&t.atualizado&&t.atualizado.slice(0,10)===iso).length; cols.push({day:days[d.getDay()],cnt,iso}); total+=cnt; } let max=Math.max(...cols.map(c=>c.cnt))||1; let html=cols.map(c=>{ let h=Math.round((c.cnt/max)*100); let bg=c.iso===todayStr()?'linear-gradient(180deg,var(--or),var(--or2))':c.cnt>0?'linear-gradient(180deg,var(--blue),rgba(74,158,255,.4))':'var(--bg4)'; return `<div class="bc-col"><div class="bc-bar" style="height:${h}%;background:${bg}" data-val="${c.cnt}"></div><div class="bc-lbl">${c.day}</div></div>`; }).join(''); document.getElementById('chart-semanal').innerHTML=html||emptyHTML('Sem dados'); document.getElementById('chart-total-week').innerText=total; document.getElementById('chart-avg').innerText=(total/7).toFixed(1); }
-function renderDonut(){ let trab=tasks.filter(t=>t.tipo==='trabalho').length, casa=tasks.filter(t=>t.tipo==='casa').length, svc=tasks.filter(t=>t.tipo==='servico').length, total=trab+casa+svc, wrap=document.getElementById('donut-wrap'); if(!total){wrap.innerHTML='<div class="empty">Sem tarefas</div>'; return;} let cats=[{lbl:'Trabalho',val:trab,color:'#f07030'},{lbl:'Casa',val:casa,color:'#4a9eff'},{lbl:'Serviços',val:svc,color:'#3ecf8e'}].filter(c=>c.val>0); let r=42,cx=54,cy=54,circ=2*Math.PI*r,offset=0; let segs=cats.map(c=>{let pct=c.val/total, dash=circ*pct, s=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c.color}" stroke-width="16" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="-${offset}" transform="rotate(-90 ${cx} ${cy})"/>`; offset+=dash; return s;}).join(''); let legend=cats.map(c=>`<div class="dl-it"><div class="dl-dot" style="background:${c.color}"></div>${c.lbl}<div class="dl-val">${c.val}</div></div>`).join(''); wrap.innerHTML=`<svg width="108" height="108" viewBox="0 0 108 108"><circle cx="54" cy="54" r="42" fill="none" stroke="var(--bg4)" stroke-width="16"/>${segs}<text x="54" y="54" text-anchor="middle" font-family="Syne" font-weight="800" font-size="18" fill="var(--text)">${total}</text></svg><div class="donut-legend">${legend}</div>`; }
-function renderAgenda(){ let calDt=new Date(), calSel=null; function buildCal(){ let y=calDt.getFullYear(), m=calDt.getMonth(); document.getElementById('cal-ttl').innerText=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][m]+' '+y; let firstDow=new Date(y,m,1).getDay(), daysInM=new Date(y,m+1,0).getDate(), prevDays=new Date(y,m,0).getDate(), td=todayStr(); let html=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="cal-dow">${d}</div>`).join(''); for(let i=0;i<firstDow;i++) html+=`<div class="cal-d other"><div class="cal-dn">${prevDays-firstDow+1+i}</div></div>`; for(let d=1;d<=daysInM;d++){ let iso=y+'-'+pad(m+1)+'-'+pad(d), isTod=(iso===td), isSel=(iso===calSel); let dots=tasks.filter(t=>t.data===iso).slice(0,4).map(t=>`<div class="cal-dot" style="background:${t.tipo==='casa'?'var(--blue)':t.tipo==='servico'?'var(--green)':'var(--or)'}"></div>`).join(''); html+=`<div class="cal-d${isTod?' today':''}${isSel?' sel':''}" data-cal="${iso}"><div class="cal-dn">${d}</div><div class="cal-dots">${dots}</div></div>`; } document.getElementById('cal-grid').innerHTML=html; } buildCal(); let agFilt='all'; document.querySelectorAll('[data-af]').forEach(b=>b.addEventListener('click',function(){ agFilt=this.getAttribute('data-af'); document.querySelectorAll('[data-af]').forEach(x=>x.classList.remove('on')); this.classList.add('on'); renderAgAll(); })); function renderAgAll(){ let list=agFilt==='all'?tasks:tasks.filter(t=>t.tipo===agFilt); list=list.slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')||(a.inicio||'').localeCompare(b.inicio||'')); document.getElementById('ag-all').innerHTML=list.length?list.map(tcHTML).join(''):emptyHTML('Nenhuma tarefa'); } renderAgAll(); document.getElementById('cal-grid').addEventListener('click',e=>{let el=e.target.closest('[data-cal]'); if(!el) return; let iso=el.getAttribute('data-cal'); calSel=iso; document.getElementById('cal-day-ttl').innerText=iso.split('-').reverse().join('/'); document.getElementById('cal-add-btn').style.display='inline-flex'; let dt=tasks.filter(t=>t.data===iso); document.getElementById('cal-day-list').innerHTML=dt.length?dt.map(tcHTML).join(''):emptyHTML('Sem tarefas'); buildCal();}); document.getElementById('cal-prev').onclick=()=>{calDt.setMonth(calDt.getMonth()-1); buildCal();}; document.getElementById('cal-next').onclick=()=>{calDt.setMonth(calDt.getMonth()+1); buildCal();}; }
-function renderTrab(){ let list=tasks.filter(t=>t.tipo==='trabalho'); let wFilt='all'; document.querySelectorAll('[data-wf]').forEach(b=>b.addEventListener('click',function(){ wFilt=this.getAttribute('data-wf'); document.querySelectorAll('[data-wf]').forEach(x=>x.classList.remove('on')); this.classList.add('on'); renderTrab();})); if(wFilt!=='all') list=list.filter(t=>t.status===wFilt); list.sort((a,b)=>({alta:0,media:1,baixa:2}[a.prioridade]||1)-({alta:0,media:1,baixa:2}[b.prioridade]||1)); document.getElementById('wk-tot').innerText=tasks.filter(t=>t.tipo==='trabalho').length; document.getElementById('wk-atr').innerText=tasks.filter(t=>t.tipo==='trabalho'&&isOverdue(t)).length; document.getElementById('wk-and').innerText=tasks.filter(t=>t.tipo==='trabalho'&&t.status==='em_andamento').length; document.getElementById('wk-con').innerText=tasks.filter(t=>t.tipo==='trabalho'&&(t.status==='concluido'||t.status==='pago')).length; document.getElementById('trab-list').innerHTML=list.length?list.map(tcHTML).join(''):emptyHTML('Nenhum processo'); }
-function renderCasa(){ let cFilt='all'; document.querySelectorAll('[data-cf]').forEach(b=>b.addEventListener('click',function(){ cFilt=this.getAttribute('data-cf'); document.querySelectorAll('[data-cf]').forEach(x=>x.classList.remove('on')); this.classList.add('on'); renderCasa();})); let list=tasks.filter(t=>t.tipo==='casa'); if(cFilt!=='all') list=list.filter(t=>t.status===cFilt); list.sort((a,b)=>(a.data||'').localeCompare(b.data||'')); document.getElementById('casa-list').innerHTML=list.length?list.map(tcHTML).join(''):emptyHTML('Nenhuma tarefa doméstica'); }
-function renderSvc(){ let sFilt='all'; document.querySelectorAll('[data-sf]').forEach(b=>b.addEventListener('click',function(){ sFilt=this.getAttribute('data-sf'); document.querySelectorAll('[data-sf]').forEach(x=>x.classList.remove('on')); this.classList.add('on'); renderSvc();})); let list=tasks.filter(t=>t.tipo==='servico'); let thisM=new Date().toISOString().slice(0,7); let totalAberto=list.filter(t=>t.status!=='pago'&&t.valor).reduce((s,t)=>s+(Number(t.valor)||0),0); let totalPago=list.filter(t=>t.status==='pago'&&t.data&&t.data.startsWith(thisM)&&t.valor).reduce((s,t)=>s+(Number(t.valor)||0),0); document.getElementById('svc-total-val').innerText='R$ '+totalAberto.toFixed(2).replace('.',','); document.getElementById('svc-pago-val').innerText='R$ '+totalPago.toFixed(2).replace('.',','); if(sFilt!=='all') list=list.filter(t=>t.status===sFilt); list.sort((a,b)=>(a.data||'').localeCompare(b.data||'')); document.getElementById('svc-list').innerHTML=list.length?list.map(tcHTML).join(''):emptyHTML('Nenhum serviço'); }
-function renderPrest(){ let el=document.getElementById('prest-list'); if(!prestList.length){el.innerHTML='<div style="grid-column:1/-1">'+emptyHTML('Nenhum prestador')+'</div>'; return;} el.innerHTML=prestList.map(p=>{let initials=(p.nome||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); let svcs=tasks.filter(t=>t.prestadorId===p.id).length; return `<div class="pcard" data-pid="${p.id}"><div class="pavatar">${escH(initials)}</div><div class="tinfo"><div class="ttl">${escH(p.nome)}</div><div class="tmeta">${p.esp?`<span class="bx bx-gr">${escH(p.esp)}</span>`:''}${p.tel?`<span class="ttime">${escH(p.tel)}</span>`:''}<span class="bx bx-gy">${svcs} serv.</span></div></div></div>`;}).join(''); }
-function renderHist(){ let el=document.getElementById('hist-list'); if(!hist.length){el.innerHTML=emptyHTML('Sem registros'); return;} el.innerHTML=hist.slice(0,80).map(h=>{let d=new Date(h.ts), ds=pad(d.getDate())+'/'+pad(d.getMonth()+1)+' '+pad(d.getHours())+':'+pad(d.getMinutes()); return `<div class="tl-it"><div class="tl-dc"><div class="tl-dot"></div><div class="tl-ln"></div></div><div class="tl-bd"><div class="tl-tm">${ds}</div><div class="tl-tx">${escH(h.msg)}</div></div></div>`;}).join(''); }
-function clearHist(){ if(!confirm('Limpar histórico?')) return; hist=[]; persistLocal(); renderHist(); toast('Histórico limpo.','s'); }
-function exportData(){ let d=JSON.stringify({tasks,prestList,hist,exportedAt:new Date().toISOString()},null,2); let a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(d); a.download='nexus-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); toast('Backup exportado!','s'); }
-function updateBadges(){ let td=todayStr(); let atras=tasks.filter(isOverdue).length; let todayPend=tasks.filter(t=>t.data===td&&t.status!=='concluido'&&t.status!=='pago').length; document.getElementById('nb-dash').innerText=atras+todayPend; let wp=tasks.filter(t=>t.tipo==='trabalho'&&(t.status==='pendente'||t.status==='em_andamento'||t.status==='nao_iniciado')).length; document.getElementById('nb-trab').innerText=wp; }
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
 
-// Eventos dos modais
-let editId=null;
-function openModal(type,preType){ if(type==='task'){ editId=null; document.getElementById('m-task-ttl').innerText='Nova Tarefa'; document.getElementById('f-tipo').value=preType||'trabalho'; ['f-titulo','f-desc','f-proc','f-forn','f-pend','f-val','f-dpag','f-ini','f-fim'].forEach(id=>document.getElementById(id).value=''); document.getElementById('f-data').value=todayStr(); document.getElementById('f-prio').value='media'; document.getElementById('f-stat').value='pendente'; document.getElementById('f-rec').value=''; fillPrestSelect(); updateTipoFields(); document.getElementById('m-task').classList.add('on');} if(type==='prestador'){ ['p-nome','p-esp','p-tel','p-email','p-obs'].forEach(id=>document.getElementById(id).value=''); document.getElementById('m-prest').classList.add('on');} }
-function closeModal(id){document.getElementById(id).classList.remove('on');}
-function fillPrestSelect(){let sel=document.getElementById('f-prest'); sel.innerHTML='<option value="">Selecionar...</option>'+prestList.map(p=>`<option value="${p.id}">${escH(p.nome)}${p.esp?' — '+p.esp:''}</option>`).join('');}
-function updateTipoFields(){ let v=document.getElementById('f-tipo').value; document.getElementById('ex-trab').style.display=v==='trabalho'?'block':'none'; document.getElementById('ex-svc').style.display=v==='servico'?'block':'none'; }
-document.getElementById('btn-save-task').addEventListener('click',()=>{ let titulo=document.getElementById('f-titulo').value.trim(), data=document.getElementById('f-data').value; if(!titulo||!data){toast('Título e data obrigatórios.','e');return;} let tipo=document.getElementById('f-tipo').value; let task={ id:editId||uid(), tipo, titulo, descricao:document.getElementById('f-desc').value.trim(), data, inicio:document.getElementById('f-ini').value, fim:document.getElementById('f-fim').value, prioridade:document.getElementById('f-prio').value, status:document.getElementById('f-stat').value, recorrencia:document.getElementById('f-rec').value, atualizado:new Date().toISOString() }; if(tipo==='trabalho'){task.processo=document.getElementById('f-proc').value.trim();task.fornecedor=document.getElementById('f-forn').value.trim();task.pendencias=document.getElementById('f-pend').value.trim();} if(tipo==='servico'){task.prestadorId=document.getElementById('f-prest').value;task.valor=parseFloat(document.getElementById('f-val').value)||null;task.dataPagamento=document.getElementById('f-dpag').value;} if(editId){ let idx=tasks.findIndex(t=>t.id===editId); if(idx>=0){task.criado=tasks[idx].criado; tasks[idx]=task;} addHist(`Tarefa "${titulo}" editada`); } else { task.criado=new Date().toISOString(); tasks.push(task); addHist(`Tarefa "${titulo}" criada (${TIPO_LBL[tipo]})`); if(task.recorrencia) geraProximaRec(task); } persistLocal(); closeModal('m-task'); toast(editId?'Tarefa atualizada!':'Tarefa criada! ✓','s'); editId=null; renderPage(curPage); });
-document.getElementById('btn-save-prest').addEventListener('click',()=>{ let nome=document.getElementById('p-nome').value.trim(); if(!nome){toast('Nome obrigatório.','e');return;} let p={id:uid(),nome,esp:document.getElementById('p-esp').value.trim(),tel:document.getElementById('p-tel').value.trim(),email:document.getElementById('p-email').value.trim(),obs:document.getElementById('p-obs').value.trim()}; prestList.push(p); addHist(`Prestador "${nome}" cadastrado`); persistLocal(); closeModal('m-prest'); renderPrest(); fillPrestSelect(); toast('Prestador salvo!','s'); });
-let detId=null; function openDet(id){let t=tasks.find(x=>x.id===id); if(!t) return; detId=id; document.getElementById('m-det-ttl').innerText=t.titulo; let extra=''; if(t.tipo==='trabalho'){if(t.processo) extra+=`<div class="fg"><span class="fl">Processo</span><div><span class="bx bx-gy">${escH(t.processo)}</span></div></div>`; if(t.fornecedor)extra+=`<div class="fg"><span class="fl">Fornecedor</span><div>${escH(t.fornecedor)}</div></div>`; if(t.pendencias)extra+=`<div class="fg"><span class="fl">Pendências</span><div>${escH(t.pendencias)}</div></div>`;} if(t.tipo==='servico'){let pr=prestList.find(p=>p.id===t.prestadorId); if(pr) extra+=`<div class="fg"><span class="fl">Prestador</span><div>${escH(pr.nome)}</div></div>`; if(t.valor) extra+=`<div class="fg"><span class="fl">Valor</span><div>R$ ${Number(t.valor).toFixed(2).replace('.',',')}</div></div>`; if(t.dataPagamento) extra+=`<div class="fg"><span class="fl">Pagamento</span><div>${fmtDate(t.dataPagamento)}</div></div>`;} let body=`<div class="row">${t.descricao?`<div class="fg"><span class="fl">Descrição</span><div>${escH(t.descricao)}</div></div>`:''}<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><span class="fl">Data</span><div>${fmtDate(t.data)}</div></div><div><span class="fl">Horário</span><div>${t.inicio||'—'}${t.fim?' → '+t.fim:''}</div></div></div>${extra}${t.recorrencia?'<div class="alert w">🔄 Recorrência: '+t.recorrencia+'</div>':''}<div class="t3c">Criado: ${t.criado?new Date(t.criado).toLocaleString('pt-BR'):'—'}</div>`; document.getElementById('m-det-body').innerHTML=body; document.getElementById('m-det').classList.add('on'); }
-document.getElementById('btn-edit').addEventListener('click',()=>{let t=tasks.find(x=>x.id===detId); if(!t) return; closeModal('m-det'); editId=t.id; document.getElementById('m-task-ttl').innerText='Editar Tarefa'; document.getElementById('f-tipo').value=t.tipo; document.getElementById('f-titulo').value=t.titulo; document.getElementById('f-desc').value=t.descricao||''; document.getElementById('f-data').value=t.data||''; document.getElementById('f-ini').value=t.inicio||''; document.getElementById('f-fim').value=t.fim||''; document.getElementById('f-prio').value=t.prioridade||'media'; document.getElementById('f-stat').value=t.status||'pendente'; document.getElementById('f-rec').value=t.recorrencia||''; if(t.tipo==='trabalho'){document.getElementById('f-proc').value=t.processo||'';document.getElementById('f-forn').value=t.fornecedor||'';document.getElementById('f-pend').value=t.pendencias||'';} if(t.tipo==='servico'){fillPrestSelect();document.getElementById('f-prest').value=t.prestadorId||'';document.getElementById('f-val').value=t.valor||'';document.getElementById('f-dpag').value=t.dataPagamento||'';} updateTipoFields(); document.getElementById('m-task').classList.add('on');});
-document.getElementById('btn-del').addEventListener('click',()=>{if(!confirm('Excluir tarefa?')) return; let t=tasks.find(x=>x.id===detId); tasks=tasks.filter(x=>x.id!==detId); addHist(`Tarefa "${t?t.titulo:''}" excluída`); persistLocal(); closeModal('m-det'); toast('Tarefa excluída.','s'); renderPage(curPage);});
-document.getElementById('btn-dup').addEventListener('click',()=>{let t=tasks.find(x=>x.id===detId); if(!t) return; let copy=JSON.parse(JSON.stringify(t)); copy.id=uid(); copy.titulo+=' (cópia)'; copy.status='pendente'; copy.criado=new Date().toISOString(); copy.atualizado=new Date().toISOString(); tasks.push(copy); addHist(`Tarefa "${t.titulo}" duplicada`); persistLocal(); closeModal('m-det'); toast('Tarefa duplicada!','s'); renderPage(curPage);});
-document.getElementById('content').addEventListener('click',e=>{let chk=e.target.closest('[data-chk]'); if(chk){e.stopPropagation(); toggleDone(chk.getAttribute('data-chk'));return;} let tc=e.target.closest('.tc[data-id]'); if(tc) openDet(tc.getAttribute('data-id'));});
-document.getElementById('btn-new').addEventListener('click',()=>{let tipo=curPage==='trabalho'?'trabalho':curPage==='casa'?'casa':curPage==='servicos'?'servico':'trabalho'; openModal('task',tipo);});
-function openModalForDate(){ openModal('task','trabalho'); if(window.calSel) setTimeout(()=>document.getElementById('f-data').value=window.calSel,50); }
-function toast(msg,type){type=type||'s'; let c=document.getElementById('toasts'),el=document.createElement('div'); el.className='toast '+(type==='s'?'s':'e'); let ic=type==='s'?'✓':'⚠'; el.innerHTML=`${ic} ${escH(msg)}`; c.appendChild(el); setTimeout(()=>{el.style.animation='toastOut .3s forwards'; setTimeout(()=>el.remove(),300);},3500);}
-function toggleSb(){document.getElementById('sidebar').classList.toggle('on'); document.getElementById('ov').classList.toggle('on');}
-function closeSb(){document.getElementById('sidebar').classList.remove('on');document.getElementById('ov').classList.remove('on');}
-document.querySelectorAll('.nav-a').forEach(btn=>btn.addEventListener('click',function(){goTo(this.getAttribute('data-pg')); closeSb();}));
-document.querySelectorAll('.mover').forEach(mo=>mo.addEventListener('click',function(e){if(e.target===this) closeModal(this.id);}));
-document.addEventListener('keydown',e=>{if(e.key==='Escape') document.querySelectorAll('.mover.on').forEach(m=>m.classList.remove('on'));});
-document.getElementById('f-tipo').addEventListener('change',updateTipoFields);
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            if (e.dataTransfer.files[0]) {
+                fileInput.files = e.dataTransfer.files;
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
 
-// Inicialização
-(async function init(){
-  let d=new Date(); document.getElementById('pg-date').innerHTML=d.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  // Carrega dados locais primeiro
-  try{ tasks = JSON.parse(localStorage.getItem('nx_tasks') || '[]'); } catch(e){}
-  try{ prestList = JSON.parse(localStorage.getItem('nx_prest') || '[]'); } catch(e){}
-  try{ hist = JSON.parse(localStorage.getItem('nx_hist') || '[]'); } catch(e){}
-  renderDash(); updateBadges();
-  await autoLoginAndSync(); // tenta login automático com as credenciais fixas
-})();
-</script>
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Processamento do arquivo
+        async function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                showMessage('❌ Por favor, selecione um arquivo PDF válido.', 'error');
+                return;
+            }
+
+            showProgress(true);
+            showMessage('⏳ Processando PDF...', 'info');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+
+                let allText = '';
+                const totalPages = pdf.numPages;
+
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    updateProgress(pageNum, totalPages, `Processando página ${pageNum}/${totalPages}...`);
+
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+
+                    // Se a página tem pouco texto, faz OCR
+                    if (pageText.trim().length < 100) {
+                        updateProgress(pageNum, totalPages, `Executando OCR na página ${pageNum}/${totalPages}...`);
+                        const ocrText = await performOCR(page, pageNum);
+                        allText += ocrText + '\n';
+                    } else {
+                        allText += pageText + '\n';
+                    }
+                }
+
+                updateProgress(totalPages, totalPages, 'Extraindo dados...');
+                extractedData = parseOrderData(allText);
+
+                if (extractedData && extractedData.items.length > 0) {
+                    displayData(extractedData);
+                    showMessage('✅ PDF processado com sucesso! ' + extractedData.items.length + ' itens encontrados.', 'success');
+                } else {
+                    showMessage('⚠️ Dados extraídos, mas nenhum item foi encontrado. Verifique o PDF.', 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showMessage('❌ Erro ao processar o PDF: ' + error.message, 'error');
+            } finally {
+                showProgress(false);
+            }
+        }
+
+        // Função OCR
+        async function performOCR(page, pageNum) {
+            try {
+                const viewport = page.getViewport({ scale: 2 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+
+                await page.render(renderContext).promise;
+                const imageData = canvas.toDataURL('image/png');
+
+                const result = await Tesseract.recognize(imageData, 'por');
+                return result.data.text;
+            } catch (error) {
+                console.error('Erro em OCR:', error);
+                return '';
+            }
+        }
+
+        // Parsing dos dados
+        function parseOrderData(text) {
+            const data = {
+                centroCustos: '',
+                fornecedor: '',
+                numeroPedido: '',
+                dataPedido: '',
+                items: [],
+                total: 0
+            };
+
+            // Extrair Centro de Custo
+            const centroMatch = text.match(/Centro de Custo:?\s*([^\n]+)/i);
+            if (centroMatch) {
+                data.centroCustos = centroMatch[1].trim();
+            }
+
+            // Extrair Número do Pedido
+            const pedidoMatch = text.match(/Pedido[:\s]+(\d+\/\d+)/i) || text.match(/(\d{4,6}\/\d{2})/);
+            if (pedidoMatch) {
+                data.numeroPedido = pedidoMatch[1].trim();
+            }
+
+            // Extrair Data
+            const dataMatch = text.match(/(\d{2}\/\d{2}\/\d{4})/);
+            if (dataMatch) {
+                data.dataPedido = dataMatch[0];
+            }
+
+            // Extrair itens
+            const itemPatterns = [
+                'ABOBORA', 'ALFACE', 'BANANA', 'CEBOLA', 'COENTRO', 'GOIABA',
+                'MANGA', 'MELANCIA', 'PIMENTÃO', 'PIMENTINHA', 'TOMATE'
+            ];
+
+            const lines = text.split('\n');
+            let itemNumber = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                // Procura por nomes de itens
+                for (let pattern of itemPatterns) {
+                    if (line.toUpperCase().includes(pattern)) {
+                        itemNumber++;
+
+                        // Extrai números após o nome do item
+                        const numbersMatch = line.match(/([A-Z\s]+?)\s+(KG|MC|DZ|L|UN)\s+([\d,.\s]+)/i);
+                        if (numbersMatch) {
+                            const numbers = line.match(/[\d,]+/g) || [];
+                            const item = {
+                                numero: itemNumber,
+                                descricao: pattern.charAt(0) + pattern.slice(1).toLowerCase(),
+                                unidade: extractUnit(line) || 'KG',
+                                quantidade: parseFloat(numbers[0]?.replace(/,/, '.') || 0),
+                                unitario: parseFloat(numbers[1]?.replace(/,/, '.') || 0),
+                                total: parseFloat(numbers[2]?.replace(/,/, '.') || 0)
+                            };
+
+                            if (item.total > 0 || (item.quantidade > 0 && item.unitario > 0)) {
+                                if (item.total === 0) {
+                                    item.total = item.quantidade * item.unitario;
+                                }
+                                data.items.push(item);
+                                data.total += item.total;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Tenta extrair total
+            const totalMatch = text.match(/TOTAL[^\n]*?([\d.,]+)$/m);
+            if (totalMatch) {
+                data.total = parseFloat(totalMatch[1].replace(/,/, '.'));
+            }
+
+            return data;
+        }
+
+        // Função auxiliar para extrair unidade
+        function extractUnit(text) {
+            const units = ['KG', 'MC', 'DZ', 'L', 'UN', 'G', 'ML'];
+            for (let unit of units) {
+                if (text.toUpperCase().includes(unit)) {
+                    return unit;
+                }
+            }
+            return 'KG';
+        }
+
+        // Exibir dados
+        function displayData(data) {
+            document.getElementById('centroCustos').textContent = data.centroCustos || '-';
+            document.getElementById('numeroPedido').textContent = data.numeroPedido || '-';
+            document.getElementById('dataPedido').textContent = data.dataPedido || '-';
+            document.getElementById('totalPedido').textContent = 'R$ ' + data.total.toFixed(2).replace('.', ',');
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            data.items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.numero}</td>
+                    <td>${item.descricao}</td>
+                    <td>${item.unidade}</td>
+                    <td class="number-cell">${item.quantidade.toFixed(2).replace('.', ',')}</td>
+                    <td class="number-cell">R$ ${item.unitario.toFixed(2).replace('.', ',')}</td>
+                    <td class="number-cell">R$ ${item.total.toFixed(2).replace('.', ',')}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Adicionar linha de total
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+            totalRow.innerHTML = `
+                <td colspan="5" style="text-align: right;">TOTAL:</td>
+                <td class="number-cell">R$ ${data.total.toFixed(2).replace('.', ',')}</td>
+            `;
+            tbody.appendChild(totalRow);
+
+            dataSection.style.display = 'block';
+        }
+
+        // Exportar para Excel
+        function exportToExcel() {
+            if (!extractedData || extractedData.items.length === 0) {
+                showMessage('❌ Nenhum dado para exportar.', 'error');
+                return;
+            }
+
+            const ws_data = [
+                ['PEDIDO DE COMPRA - EXTRAÇÃO DE DADOS'],
+                [],
+                ['Centro de Custos:', extractedData.centroCustos],
+                ['Número do Pedido:', extractedData.numeroPedido],
+                ['Data do Pedido:', extractedData.dataPedido],
+                ['Total:', extractedData.total],
+                [],
+                ['Item #', 'Descrição', 'Unidade', 'Quantidade', '$ Unit', 'Valor Total']
+            ];
+
+            extractedData.items.forEach(item => {
+                ws_data.push([
+                    item.numero,
+                    item.descricao,
+                    item.unidade,
+                    item.quantidade,
+                    item.unitario,
+                    item.total
+                ]);
+            });
+
+            ws_data.push([]);
+            ws_data.push(['', '', '', '', 'TOTAL GERAL', extractedData.total]);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+            // Formatação de colunas
+            ws['!cols'] = [
+                { wch: 8 },   // Item #
+                { wch: 30 },  // Descrição
+                { wch: 12 },  // Unidade
+                { wch: 15 },  // Quantidade
+                { wch: 15 },  // $ Unit
+                { wch: 15 }   // Valor Total
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Pedido');
+
+            const fileName = `pedido_${extractedData.numeroPedido.replace(/\//g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            showMessage('✅ Arquivo Excel exportado com sucesso!', 'success');
+        }
+
+        // Resetar formulário
+        function resetForm() {
+            fileInput.value = '';
+            dataSection.style.display = 'none';
+            message.innerHTML = '';
+            extractedData = null;
+            progressContainer.style.display = 'none';
+        }
+
+        // Mostrar mensagem
+        function showMessage(text, type) {
+            message.className = 'message ' + type;
+            message.innerHTML = text;
+            message.style.display = 'flex';
+        }
+
+        // Atualizar progresso
+        function showProgress(show) {
+            progressContainer.style.display = show ? 'block' : 'none';
+        }
+
+        function updateProgress(current, total, text) {
+            const percentage = (current / total) * 100;
+            progressFill.style.width = percentage + '%';
+            progressText.textContent = text;
+        }
+
+        // Inicializar Tesseract
+        console.log('Sistema de extração de pedidos carregado.');
+        console.log('Usando Tesseract.js para OCR em PDFs escaneados.');
+    </script>
 </body>
 </html>
