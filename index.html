@@ -1,806 +1,889 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extrator de Pedidos PDF com OCR</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NUMERA — Normalizador Universal de CPF e CNPJ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23103B36'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='26' font-weight='700' fill='%2300D9A3' text-anchor='middle'%3E%23%23%3C/text%3E%3C/svg%3E">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#0B1F1C;
+  --panel:#0F2925;
+  --panel-2:#123530;
+  --line:#1E4B43;
+  --paper:#F4F7F5;
+  --paper-dim:#E4EAE7;
+  --mint:#00D9A3;
+  --mint-dim:#0A8F6B;
+  --amber:#F2B84B;
+  --coral:#F2685B;
+  --text:#0B1F1C;
+  --text-soft:#5B6E68;
+  --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:10px;
+}
+@font-face{
+  font-family:'Inter';
+  src:local('Inter');
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  background:var(--paper);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--mint);color:var(--ink);}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+/* ---------- HEADER ---------- */
+header.top{
+  background:var(--ink);
+  color:var(--paper);
+  border-bottom:3px solid var(--mint);
+  position:sticky; top:0; z-index:50;
+}
+.top-inner{
+  max-width:1240px;margin:0 auto;padding:18px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:14px;}
+.logo{
+  width:46px;height:46px;border-radius:12px;
+  background:linear-gradient(155deg,var(--mint) 0%,var(--mint-dim) 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:800;font-size:20px;color:var(--ink);
+  box-shadow:0 4px 14px rgba(0,217,163,.25);
+  flex-shrink:0;
+}
+.brand-text h1{
+  font-size:20px;letter-spacing:.5px;font-weight:800;line-height:1.1;
+}
+.brand-text p{
+  font-size:12px;color:#9FC7BE;margin-top:2px;font-family:var(--mono);letter-spacing:.3px;
+}
+.header-demo{
+  font-family:var(--mono);font-size:11px;color:#7FA79E;text-align:right;line-height:1.6;
+  border-left:1px solid #204840;padding-left:18px;
+}
+.header-demo b{color:#B9E8DB;font-weight:600;}
+.header-demo .arrow{color:var(--mint);}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
+/* ---------- LAYOUT ---------- */
+main{max-width:1240px;margin:0 auto;padding:32px 28px 80px;}
+section{margin-bottom:36px;}
+.section-title{
+  display:flex;align-items:baseline;gap:10px;margin-bottom:16px;
+}
+.section-title .num{
+  font-family:var(--mono);font-size:12px;color:var(--mint-dim);font-weight:700;
+}
+.section-title h2{font-size:15px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;color:var(--ink);}
+.section-title .rule{flex:1;height:1px;background:var(--line);opacity:.25;}
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+.card{
+  background:#fff;border:1px solid var(--paper-dim);border-radius:var(--r);
+  box-shadow:0 1px 3px rgba(11,31,28,.04);
+}
 
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
+/* ---------- DASHBOARD ---------- */
+.dash-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:14px;
+}
+.dash-card{
+  padding:18px 18px 16px;position:relative;overflow:hidden;
+}
+.dash-card .label{
+  font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--text-soft);margin-bottom:8px;
+}
+.dash-card .value{
+  font-family:var(--mono);font-size:30px;font-weight:800;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.dash-card.mint{border-top:3px solid var(--mint);}
+.dash-card.amber{border-top:3px solid var(--amber);}
+.dash-card.coral{border-top:3px solid var(--coral);}
 
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+/* ---------- MANUAL INPUT ---------- */
+.manual-box{padding:22px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;}
+.manual-input-wrap{flex:1;min-width:280px;}
+textarea#manualInput{
+  width:100%;min-height:88px;resize:vertical;
+  border:1.5px solid var(--paper-dim);border-radius:8px;padding:14px 16px;
+  font-family:var(--mono);font-size:15px;color:var(--ink);
+  transition:border-color .15s;
+}
+textarea#manualInput:focus{outline:none;border-color:var(--mint);}
+.manual-input-wrap .hint{font-size:12px;color:var(--text-soft);margin-top:8px;}
+.manual-side{display:flex;flex-direction:column;gap:10px;min-width:200px;}
+.type-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  padding:8px 12px;border-radius:6px;background:var(--paper);color:var(--text-soft);
+  border:1px solid var(--paper-dim);
+}
+.type-pill.cpf{background:#E6FBF4;color:var(--mint-dim);border-color:#B9EDDA;}
+.type-pill.cnpj{background:#FFF3E2;color:#B67B12;border-color:#F5DDAE;}
+.type-pill.invalid{background:#FDECEA;color:#B23A2F;border-color:#F6C5BE;}
 
-        .content {
-            padding: 30px;
-        }
+.result-line{
+  display:flex;align-items:center;gap:10px;background:var(--paper);
+  border:1px solid var(--paper-dim);border-radius:8px;padding:12px 14px;
+}
+.result-line .digits{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink);letter-spacing:.4px;flex:1;word-break:break-all;}
+.btn-copy-small{
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.3px;
+  padding:7px 12px;border-radius:6px;border:1px solid var(--line);
+  background:var(--ink);color:var(--mint);cursor:pointer;white-space:nowrap;
+  transition:transform .1s, background .15s;
+}
+.btn-copy-small:hover{background:#173F38;}
+.btn-copy-small:active{transform:scale(.96);}
+.btn-copy-small.copied{background:var(--mint);color:var(--ink);}
 
-        .upload-section {
-            background: #f8f9fa;
-            border: 2px dashed #667eea;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            margin-bottom: 30px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+/* ---------- UPLOAD ---------- */
+.upload-zone{
+  padding:36px 24px;text-align:center;border:2px dashed var(--paper-dim);border-radius:var(--r);
+  background:#fff;cursor:pointer;transition:border-color .15s, background .15s;
+}
+.upload-zone.drag{border-color:var(--mint);background:#F0FBF7;}
+.upload-zone .icon{
+  width:48px;height:48px;margin:0 auto 14px;border-radius:12px;
+  background:var(--paper);display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--mint-dim);
+}
+.upload-zone h3{font-size:15px;font-weight:700;margin-bottom:4px;}
+.upload-zone p{font-size:12.5px;color:var(--text-soft);}
+.upload-zone input{display:none;}
+.file-chip{
+  display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+  font-family:var(--mono);font-size:12px;background:var(--paper);border:1px solid var(--paper-dim);
+  padding:6px 12px;border-radius:6px;color:var(--text-soft);
+}
 
-        .upload-section:hover {
-            border-color: #764ba2;
-            background: #f0f2ff;
-        }
+.options-row{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:16px;padding:0 2px;}
+.checkbox-opt{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;user-select:none;}
+.checkbox-opt input{width:16px;height:16px;accent-color:var(--mint-dim);cursor:pointer;}
 
-        .upload-section.dragging {
-            border-color: #764ba2;
-            background: #f0f2ff;
-            transform: scale(1.02);
-        }
+.progress-wrap{margin-top:16px;display:none;}
+.progress-wrap.active{display:block;}
+.progress-bar-track{height:6px;background:var(--paper-dim);border-radius:3px;overflow:hidden;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--mint-dim),var(--mint));width:0%;transition:width .2s;}
+.progress-stats{
+  display:flex;justify-content:space-between;margin-top:8px;
+  font-family:var(--mono);font-size:11.5px;color:var(--text-soft);
+}
 
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
+/* ---------- TOOLBAR / TABLE ---------- */
+.toolbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;
+}
+.filter-tabs{display:flex;gap:4px;background:var(--paper);padding:4px;border-radius:8px;border:1px solid var(--paper-dim);}
+.filter-tab{
+  font-family:var(--mono);font-size:11.5px;font-weight:700;padding:7px 13px;border-radius:6px;
+  cursor:pointer;color:var(--text-soft);transition:all .15s;background:none;border:none;
+}
+.filter-tab.active{background:var(--ink);color:var(--mint);}
+.search-input{
+  flex:1;min-width:200px;padding:9px 14px;border:1px solid var(--paper-dim);border-radius:8px;
+  font-size:13px;font-family:var(--sans);
+}
+.search-input:focus{outline:none;border-color:var(--mint);}
+.btn{
+  font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 16px;border-radius:8px;
+  border:1px solid var(--paper-dim);background:#fff;color:var(--ink);cursor:pointer;
+  transition:background .15s, border-color .15s;white-space:nowrap;
+}
+.btn:hover{background:var(--paper);}
+.btn.primary{background:var(--ink);color:var(--mint);border-color:var(--ink);}
+.btn.primary:hover{background:#173F38;}
+.btn.ghost{color:var(--coral);border-color:#F6C5BE;}
+.btn.ghost:hover{background:#FDECEA;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
 
-        .upload-text {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 10px;
-        }
+table.results{width:100%;border-collapse:collapse;font-size:13.5px;}
+table.results thead th{
+  text-align:left;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--text-soft);padding:12px 16px;border-bottom:2px solid var(--paper-dim);background:var(--paper);
+}
+table.results tbody td{padding:11px 16px;border-bottom:1px solid var(--paper-dim);vertical-align:middle;}
+table.results tbody tr:hover{background:#FAFCFB;}
+.badge{
+  font-family:var(--mono);font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:5px;
+  display:inline-block;
+}
+.badge.cpf{background:#E6FBF4;color:var(--mint-dim);}
+.badge.cnpj{background:#FFF3E2;color:#B67B12;}
+.badge.dup{background:#EEEAFB;color:#6446C4;}
+.badge.err{background:#FDECEA;color:#B23A2F;}
+.orig{color:var(--text-soft);font-family:var(--mono);font-size:12.5px;}
+.digits-cell{font-family:var(--mono);font-weight:700;letter-spacing:.3px;}
 
-        .upload-subtext {
-            font-size: 14px;
-            color: #666;
-        }
+.empty-state{
+  text-align:center;padding:60px 20px;color:var(--text-soft);
+}
+.empty-state .glyph{font-family:var(--mono);font-size:34px;color:var(--paper-dim);margin-bottom:10px;}
+.empty-state p{font-size:13.5px;}
 
-        .file-input-label {
-            color: #667eea;
-            font-weight: 600;
-            text-decoration: underline;
-            cursor: pointer;
-        }
+.pagination{
+  display:flex;align-items:center;justify-content:center;gap:6px;padding:18px;
+  font-family:var(--mono);font-size:12px;color:var(--text-soft);
+}
+.pagination button{
+  border:1px solid var(--paper-dim);background:#fff;border-radius:6px;padding:6px 12px;
+  cursor:pointer;font-family:var(--mono);font-size:12px;
+}
+.pagination button:disabled{opacity:.35;cursor:not-allowed;}
+.pagination button:not(:disabled):hover{background:var(--paper);}
 
-        input[type="file"] {
-            display: none;
-        }
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:var(--mint);padding:12px 22px;border-radius:8px;
+  font-family:var(--mono);font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);
+  opacity:0;pointer-events:none;transition:all .25s;z-index:200;border:1px solid var(--line);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.error{color:var(--coral);}
 
-        .progress-container {
-            display: none;
-            margin-bottom: 30px;
-        }
+footer{
+  text-align:center;padding:24px;font-size:11.5px;color:var(--text-soft);
+  font-family:var(--mono);
+}
 
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            font-size: 14px;
-            color: #666;
-            text-align: center;
-        }
-
-        .data-section {
-            display: none;
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-        }
-
-        .data-section h2 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .header-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .info-box {
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .info-box:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .info-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            word-break: break-word;
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-            margin-bottom: 30px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-
-        thead {
-            background: #f0f2ff;
-            border-bottom: 2px solid #667eea;
-        }
-
-        th {
-            padding: 15px;
-            text-align: left;
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e0e0e0;
-            font-size: 14px;
-            color: #333;
-        }
-
-        tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .number-cell {
-            text-align: right;
-            font-weight: 500;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 30px;
-        }
-
-        button {
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: #e0e0e0;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #d0d0d0;
-            transform: translateY(-2px);
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .message.error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ef5350;
-            display: flex;
-        }
-
-        .message.success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #66bb6a;
-            display: flex;
-        }
-
-        .message.info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 1px solid #42a5f5;
-            display: flex;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .footer {
-            background: #f8f9fa;
-            border-top: 1px solid #e0e0e0;
-            padding: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                padding: 20px;
-            }
-
-            .header h1 {
-                font-size: 22px;
-            }
-
-            .content {
-                padding: 20px;
-            }
-
-            .upload-section {
-                padding: 25px;
-            }
-
-            .upload-icon {
-                font-size: 36px;
-            }
-
-            .upload-text {
-                font-size: 16px;
-            }
-
-            .header-info {
-                grid-template-columns: 1fr;
-            }
-
-            th, td {
-                padding: 10px;
-                font-size: 12px;
-            }
-
-            button {
-                padding: 10px 16px;
-                font-size: 12px;
-            }
-        }
-
-        .ocr-status {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .total-row {
-            background: #f0f2ff;
-            font-weight: 600;
-            border-top: 2px solid #667eea;
-        }
-
-        .total-row td {
-            border-bottom: none;
-        }
-    </style>
+@media (max-width:900px){
+  .dash-grid{grid-template-columns:repeat(2,1fr);}
+  .header-demo{display:none;}
+}
+@media (max-width:600px){
+  main{padding:20px 16px 60px;}
+  .dash-grid{grid-template-columns:1fr 1fr;}
+  table.results{font-size:12px;}
+  .orig{display:none;}
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📄 Extrator de Pedidos PDF</h1>
-            <p>Converta pedidos escaneados em planilhas Excel com OCR</p>
-        </div>
 
-        <div class="content">
-            <div id="message" class="message"></div>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <div class="logo">#N</div>
+      <div class="brand-text">
+        <h1>NUMERA</h1>
+        <p>NORMALIZADOR UNIVERSAL DE CPF E CNPJ</p>
+      </div>
+    </div>
+    <div class="header-demo">
+      CNPJ: <b>10.806.496/0013-82</b> <span class="arrow">→</span> <b>10806496001382</b>
+    </div>
+  </div>
+</header>
 
-            <div class="upload-section" id="uploadArea">
-                <div class="upload-icon">📋</div>
-                <p class="upload-text">Arraste seu PDF aqui ou <span class="file-input-label">clique para selecionar</span></p>
-                <p class="upload-subtext">Arquivos aceitos: PDF (escaneado ou digital)</p>
-                <input type="file" id="fileInput" accept=".pdf" />
-            </div>
+<main>
 
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-text" id="progressText">Inicializando...</div>
-            </div>
+  <!-- DASHBOARD -->
+  <section>
+    <div class="section-title"><span class="num">01</span><h2>Painel</h2><div class="rule"></div></div>
+    <div class="dash-grid">
+      <div class="card dash-card mint"><div class="label">Processados</div><div class="value" id="statTotal">0</div></div>
+      <div class="card dash-card mint"><div class="label">CPF encontrados</div><div class="value" id="statCpf">0</div></div>
+      <div class="card dash-card amber"><div class="label">CNPJ encontrados</div><div class="value" id="statCnpj">0</div></div>
+      <div class="card dash-card" style="border-top:3px solid #6446C4;"><div class="label">Duplicados</div><div class="value" id="statDup">0</div></div>
+      <div class="card dash-card coral"><div class="label">Inconsistentes</div><div class="value" id="statErr">0</div></div>
+    </div>
+  </section>
 
-            <div class="data-section" id="dataSection">
-                <h2>📋 Informações do Pedido</h2>
+  <!-- MANUAL -->
+  <section>
+    <div class="section-title"><span class="num">02</span><h2>Digite ou cole CPF/CNPJ</h2><div class="rule"></div></div>
+    <div class="card manual-box">
+      <div class="manual-input-wrap">
+        <textarea id="manualInput" placeholder="Ex: 10.806.496/0013-82  ou  123.456.789-09&#10;Aceita múltiplos documentos, um por linha." autocomplete="off"></textarea>
+        <div class="hint">Cole com CTRL+V — máscaras são removidas automaticamente, os dígitos originais são preservados.</div>
+      </div>
+      <div class="manual-side">
+        <span class="type-pill" id="typePill">Aguardando entrada</span>
+        <div id="manualResults"></div>
+      </div>
+    </div>
+  </section>
 
-                <div class="header-info">
-                    <div class="info-box">
-                        <div class="info-label">Centro de Custos</div>
-                        <div class="info-value" id="centroCustos">-</div>
-                    </div>
-                    <div class="info-box">
-                        <div class="info-label">Número do Pedido</div>
-                        <div class="info-value" id="numeroPedido">-</div>
-                    </div>
-                    <div class="info-box">
-                        <div class="info-label">Data do Pedido</div>
-                        <div class="info-value" id="dataPedido">-</div>
-                    </div>
-                    <div class="info-box">
-                        <div class="info-label">Total do Pedido</div>
-                        <div class="info-value" id="totalPedido">-</div>
-                    </div>
-                </div>
+  <!-- UPLOAD -->
+  <section>
+    <div class="section-title"><span class="num">03</span><h2>Importar planilha Excel</h2><div class="rule"></div></div>
+    <div class="upload-zone" id="dropZone">
+      <div class="icon">⇪</div>
+      <h3>Arraste seu arquivo Excel aqui</h3>
+      <p>ou clique para selecionar — apenas arquivos .xlsx</p>
+      <input type="file" id="fileInput" accept=".xlsx">
+      <div id="fileChipWrap"></div>
+    </div>
+    <div class="options-row">
+      <label class="checkbox-opt">
+        <input type="checkbox" id="removeDupOpt">
+        Remover documentos duplicados
+      </label>
+    </div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <div class="progress-stats">
+        <span id="progressText">Processando...</span>
+        <span id="progressCounts">Processados: 0 · Encontrados: 0</span>
+      </div>
+    </div>
+  </section>
 
-                <h2>📦 Itens do Pedido</h2>
-                <div class="table-wrapper">
-                    <table id="itemsTable">
-                        <thead>
-                            <tr>
-                                <th>Item #</th>
-                                <th>Descrição</th>
-                                <th>Unidade</th>
-                                <th style="text-align: right;">Quantidade</th>
-                                <th style="text-align: right;">$ Unit</th>
-                                <th style="text-align: right;">Valor Total</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody">
-                            <tr>
-                                <td colspan="6" class="empty-state">
-                                    <div class="empty-state-icon">📭</div>
-                                    <div>Nenhum item extraído</div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+  <!-- RESULTS -->
+  <section>
+    <div class="section-title"><span class="num">04</span><h2>Resultados</h2><div class="rule"></div></div>
 
-                <div class="button-group">
-                    <button class="btn-primary" onclick="exportToExcel()">
-                        📊 Exportar para Excel
-                    </button>
-                    <button class="btn-secondary" onclick="resetForm()">
-                        🔄 Processar Novo PDF
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>Sistema de extração com OCR (Optical Character Recognition) • Suporta PDFs escaneados e digitais</p>
-        </div>
+    <div class="toolbar">
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="todos">Todos</button>
+        <button class="filter-tab" data-filter="cpf">CPF</button>
+        <button class="filter-tab" data-filter="cnpj">CNPJ</button>
+        <button class="filter-tab" data-filter="dup">Duplicados</button>
+        <button class="filter-tab" data-filter="err">Inconsistentes</button>
+      </div>
+      <input type="text" class="search-input" id="searchInput" placeholder="Pesquisar documento...">
+      <button class="btn" id="btnCopyAll">Copiar todos</button>
+      <button class="btn primary" id="btnExport">Exportar Excel</button>
+      <button class="btn ghost" id="btnClear">Limpar resultados</button>
     </div>
 
-    <!-- Bibliotecas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx.js/8.5.0/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
+    <div class="card" style="overflow:hidden;">
+      <div id="tableWrap">
+        <div class="empty-state">
+          <div class="glyph">#</div>
+          <p>Nenhum registro processado ainda. Digite um documento acima ou importe uma planilha.</p>
+        </div>
+      </div>
+      <div class="pagination" id="pagination" style="display:none;"></div>
+    </div>
+  </section>
 
-    <script>
-        // Configuração do PDF.js
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</main>
 
-        // Elementos do DOM
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const message = document.getElementById('message');
-        const dataSection = document.getElementById('dataSection');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
+<footer>NUMERA — processamento 100% local no navegador. Nenhum dado é enviado a servidores externos.</footer>
 
-        let extractedData = null;
+<div class="toast" id="toast"></div>
 
-        // Eventos de upload
-        uploadArea.addEventListener('click', () => fileInput.click());
+<script>
+(function(){
+"use strict";
 
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragging');
-        });
+/* ===================== NORMALIZAÇÃO (núcleo) ===================== */
+// Regra absoluta: remover apenas caracteres não numéricos. Nunca calcular,
+// corrigir, completar ou alterar dígitos.
+function onlyDigits(str){
+  return (str || "").replace(/\D/g, "");
+}
+function classify(digits){
+  if(digits.length === 11) return "CPF";
+  if(digits.length === 14) return "CNPJ";
+  return null;
+}
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragging');
-        });
+// Extrai candidatos a CPF/CNPJ de um texto livre (com ou sem máscara),
+// mesmo quando misturados a outras palavras.
+const DOC_REGEX = /(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}\-?\d{2})|(\d{3}\.?\d{3}\.?\d{3}\-?\d{2})|(\d{14})|(\d{11})/g;
 
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragging');
-            if (e.dataTransfer.files[0]) {
-                fileInput.files = e.dataTransfer.files;
-                handleFile(e.dataTransfer.files[0]);
-            }
-        });
+function extractDocsFromText(text){
+  if(!text) return [];
+  const found = [];
+  const str = String(text);
+  const matches = str.match(DOC_REGEX);
+  if(!matches) return [];
+  // dedupe overlapping raw substrings by scanning greedily
+  const seenSpans = new Set();
+  matches.forEach(m => {
+    const digits = onlyDigits(m);
+    if(digits.length === 11 || digits.length === 14){
+      const key = digits + "|" + m;
+      if(!seenSpans.has(key)){
+        seenSpans.add(key);
+        found.push({ original: m.trim(), digits });
+      }
+    }
+  });
+  return found;
+}
 
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files[0]) {
-                handleFile(e.target.files[0]);
-            }
-        });
+/* ===================== ESTADO ===================== */
+let records = []; // {id, tipo, original, digits, duplicate, invalid}
+let idCounter = 0;
+let currentFilter = "todos";
+let searchTerm = "";
+let currentPage = 1;
+const PAGE_SIZE = 100;
 
-        // Processamento do arquivo
-        async function handleFile(file) {
-            if (file.type !== 'application/pdf') {
-                showMessage('❌ Por favor, selecione um arquivo PDF válido.', 'error');
-                return;
-            }
+function addRecord(original, digits, source){
+  const tipo = classify(digits);
+  const rec = {
+    id: ++idCounter,
+    tipo: tipo || "—",
+    original: original,
+    digits: digits,
+    invalid: !tipo,
+    duplicate: false,
+    source: source || "manual"
+  };
+  records.push(rec);
+  return rec;
+}
 
-            showProgress(true);
-            showMessage('⏳ Processando PDF...', 'info');
+function recomputeDuplicates(){
+  const seen = new Map();
+  records.forEach(r => {
+    if(r.invalid) return;
+    const key = r.tipo + ":" + r.digits;
+    if(seen.has(key)){
+      r.duplicate = true;
+    } else {
+      seen.set(key, true);
+      r.duplicate = false;
+    }
+  });
+}
 
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+function applyDedupeIfNeeded(){
+  if(!document.getElementById("removeDupOpt").checked) return;
+  const seen = new Set();
+  records = records.filter(r => {
+    if(r.invalid) return true;
+    const key = r.tipo + ":" + r.digits;
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
-                let allText = '';
-                const totalPages = pdf.numPages;
+/* ===================== DASHBOARD ===================== */
+function updateDashboard(){
+  const total = records.length;
+  const cpf = records.filter(r => r.tipo === "CPF").length;
+  const cnpj = records.filter(r => r.tipo === "CNPJ").length;
+  const dup = records.filter(r => r.duplicate).length;
+  const err = records.filter(r => r.invalid).length;
+  document.getElementById("statTotal").textContent = total.toLocaleString("pt-BR");
+  document.getElementById("statCpf").textContent = cpf.toLocaleString("pt-BR");
+  document.getElementById("statCnpj").textContent = cnpj.toLocaleString("pt-BR");
+  document.getElementById("statDup").textContent = dup.toLocaleString("pt-BR");
+  document.getElementById("statErr").textContent = err.toLocaleString("pt-BR");
+}
 
-                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                    updateProgress(pageNum, totalPages, `Processando página ${pageNum}/${totalPages}...`);
+/* ===================== TOAST ===================== */
+let toastTimer = null;
+function showToast(msg, isError){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (isError ? " error" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
 
-                    const page = await pdf.getPage(pageNum);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text);
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch(e){}
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
 
-                    // Se a página tem pouco texto, faz OCR
-                    if (pageText.trim().length < 100) {
-                        updateProgress(pageNum, totalPages, `Executando OCR na página ${pageNum}/${totalPages}...`);
-                        const ocrText = await performOCR(page, pageNum);
-                        allText += ocrText + '\n';
-                    } else {
-                        allText += pageText + '\n';
-                    }
-                }
+/* ===================== ENTRADA MANUAL ===================== */
+const manualInput = document.getElementById("manualInput");
+const typePill = document.getElementById("typePill");
+const manualResults = document.getElementById("manualResults");
 
-                updateProgress(totalPages, totalPages, 'Extraindo dados...');
-                extractedData = parseOrderData(allText);
+let manualDebounce = null;
+manualInput.addEventListener("input", () => {
+  clearTimeout(manualDebounce);
+  manualDebounce = setTimeout(processManualInput, 150);
+});
 
-                if (extractedData && extractedData.items.length > 0) {
-                    displayData(extractedData);
-                    showMessage('✅ PDF processado com sucesso! ' + extractedData.items.length + ' itens encontrados.', 'success');
-                } else {
-                    showMessage('⚠️ Dados extraídos, mas nenhum item foi encontrado. Verifique o PDF.', 'error');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                showMessage('❌ Erro ao processar o PDF: ' + error.message, 'error');
-            } finally {
-                showProgress(false);
-            }
-        }
+function processManualInput(){
+  const raw = manualInput.value;
+  manualResults.innerHTML = "";
 
-        // Função OCR
-        async function performOCR(page, pageNum) {
-            try {
-                const viewport = page.getViewport({ scale: 2 });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
+  if(!raw.trim()){
+    typePill.className = "type-pill";
+    typePill.textContent = "Aguardando entrada";
+    return;
+  }
 
-                const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport
-                };
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  const found = [];
+  lines.forEach(line => {
+    const docs = extractDocsFromText(line);
+    if(docs.length){
+      docs.forEach(d => found.push(d));
+    } else {
+      const digits = onlyDigits(line);
+      if(digits.length){
+        found.push({ original: line, digits: digits });
+      }
+    }
+  });
 
-                await page.render(renderContext).promise;
-                const imageData = canvas.toDataURL('image/png');
+  if(!found.length){
+    typePill.className = "type-pill invalid";
+    typePill.textContent = "Nenhum documento identificado";
+    return;
+  }
 
-                const result = await Tesseract.recognize(imageData, 'por');
-                return result.data.text;
-            } catch (error) {
-                console.error('Erro em OCR:', error);
-                return '';
-            }
-        }
+  const validCount = found.filter(f => classify(f.digits)).length;
+  const invalidCount = found.length - validCount;
 
-        // Parsing dos dados
-        function parseOrderData(text) {
-            const data = {
-                centroCustos: '',
-                fornecedor: '',
-                numeroPedido: '',
-                dataPedido: '',
-                items: [],
-                total: 0
-            };
+  if(found.length === 1){
+    const tipo = classify(found[0].digits);
+    if(tipo){
+      typePill.className = "type-pill " + tipo.toLowerCase();
+      typePill.textContent = tipo + " identificado";
+    } else {
+      typePill.className = "type-pill invalid";
+      typePill.textContent = "Quantidade de dígitos incompatível com CPF/CNPJ.";
+    }
+  } else {
+    typePill.className = "type-pill";
+    typePill.textContent = validCount + " documento(s) identificado(s)" + (invalidCount ? " · " + invalidCount + " inconsistente(s)" : "");
+  }
 
-            // Extrair Centro de Custo
-            const centroMatch = text.match(/Centro de Custo:?\s*([^\n]+)/i);
-            if (centroMatch) {
-                data.centroCustos = centroMatch[1].trim();
-            }
+  found.forEach((f, i) => {
+    const line = document.createElement("div");
+    line.className = "result-line";
+    line.style.marginTop = i === 0 ? "0" : "8px";
+    const tipo = classify(f.digits);
+    line.innerHTML = `<span class="digits">${escapeHtml(f.digits)}</span>
+      <button class="btn-copy-small" data-copy="${escapeHtml(f.digits)}">Copiar</button>`;
+    manualResults.appendChild(line);
 
-            // Extrair Número do Pedido
-            const pedidoMatch = text.match(/Pedido[:\s]+(\d+\/\d+)/i) || text.match(/(\d{4,6}\/\d{2})/);
-            if (pedidoMatch) {
-                data.numeroPedido = pedidoMatch[1].trim();
-            }
+    // register into global records too (for export), tagged as manual source
+    addRecord(f.original, f.digits, "manual");
+  });
+  recomputeDuplicates();
+  applyDedupeIfNeeded();
+  updateDashboard();
+  renderTable();
+}
 
-            // Extrair Data
-            const dataMatch = text.match(/(\d{2}\/\d{2}\/\d{4})/);
-            if (dataMatch) {
-                data.dataPedido = dataMatch[0];
-            }
+manualResults.addEventListener("click", (e) => {
+  const btn = e.target.closest(".btn-copy-small");
+  if(!btn) return;
+  const val = btn.getAttribute("data-copy");
+  copyText(val).then(() => {
+    const original = btn.textContent;
+    btn.textContent = "Copiado!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 1200);
+  });
+});
 
-            // Extrair itens
-            const itemPatterns = [
-                'ABOBORA', 'ALFACE', 'BANANA', 'CEBOLA', 'COENTRO', 'GOIABA',
-                'MANGA', 'MELANCIA', 'PIMENTÃO', 'PIMENTINHA', 'TOMATE'
-            ];
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
 
-            const lines = text.split('\n');
-            let itemNumber = 0;
+/* ===================== UPLOAD XLSX ===================== */
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+const fileChipWrap = document.getElementById("fileChipWrap");
+const progressWrap = document.getElementById("progressWrap");
+const progressFill = document.getElementById("progressFill");
+const progressText = document.getElementById("progressText");
+const progressCounts = document.getElementById("progressCounts");
 
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
+dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag"));
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropZone.classList.remove("drag");
+  const file = e.dataTransfer.files[0];
+  if(file) handleFile(file);
+});
+fileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if(file) handleFile(file);
+});
 
-                // Procura por nomes de itens
-                for (let pattern of itemPatterns) {
-                    if (line.toUpperCase().includes(pattern)) {
-                        itemNumber++;
+function handleFile(file){
+  if(!file.name.toLowerCase().endsWith(".xlsx")){
+    showToast("Formato incompatível. Envie um arquivo .xlsx", true);
+    return;
+  }
+  fileChipWrap.innerHTML = `<div class="file-chip">📄 ${escapeHtml(file.name)}</div>`;
 
-                        // Extrai números após o nome do item
-                        const numbersMatch = line.match(/([A-Z\s]+?)\s+(KG|MC|DZ|L|UN)\s+([\d,.\s]+)/i);
-                        if (numbersMatch) {
-                            const numbers = line.match(/[\d,]+/g) || [];
-                            const item = {
-                                numero: itemNumber,
-                                descricao: pattern.charAt(0) + pattern.slice(1).toLowerCase(),
-                                unidade: extractUnit(line) || 'KG',
-                                quantidade: parseFloat(numbers[0]?.replace(/,/, '.') || 0),
-                                unitario: parseFloat(numbers[1]?.replace(/,/, '.') || 0),
-                                total: parseFloat(numbers[2]?.replace(/,/, '.') || 0)
-                            };
+  const reader = new FileReader();
+  reader.onerror = () => showToast("Erro durante leitura do arquivo.", true);
+  reader.onload = (e) => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      processWorkbook(workbook);
+    } catch(err){
+      console.error(err);
+      showToast("Arquivo corrompido ou ilegível.", true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
 
-                            if (item.total > 0 || (item.quantidade > 0 && item.unitario > 0)) {
-                                if (item.total === 0) {
-                                    item.total = item.quantidade * item.unitario;
-                                }
-                                data.items.push(item);
-                                data.total += item.total;
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
+function processWorkbook(workbook){
+  // Gather all cell values from all sheets into a flat array first.
+  const cellValues = [];
+  workbook.SheetNames.forEach(sheetName => {
+    const sheet = workbook.Sheets[sheetName];
+    if(!sheet) return;
+    Object.keys(sheet).forEach(cellRef => {
+      if(cellRef[0] === "!") return; // skip metadata keys
+      const cell = sheet[cellRef];
+      if(cell && cell.v !== undefined && cell.v !== null){
+        cellValues.push(String(cell.v));
+      }
+    });
+  });
 
-            // Tenta extrair total
-            const totalMatch = text.match(/TOTAL[^\n]*?([\d.,]+)$/m);
-            if (totalMatch) {
-                data.total = parseFloat(totalMatch[1].replace(/,/, '.'));
-            }
+  if(!cellValues.length){
+    showToast("Nenhuma célula com conteúdo foi encontrada na planilha.", true);
+    return;
+  }
 
-            return data;
-        }
+  progressWrap.classList.add("active");
+  progressText.textContent = "Processando...";
+  let processed = 0;
+  let foundCount = 0;
+  const total = cellValues.length;
+  const CHUNK = 500;
+  let idx = 0;
 
-        // Função auxiliar para extrair unidade
-        function extractUnit(text) {
-            const units = ['KG', 'MC', 'DZ', 'L', 'UN', 'G', 'ML'];
-            for (let unit of units) {
-                if (text.toUpperCase().includes(unit)) {
-                    return unit;
-                }
-            }
-            return 'KG';
-        }
+  function step(){
+    const end = Math.min(idx + CHUNK, total);
+    for(; idx < end; idx++){
+      const val = cellValues[idx];
+      processed++;
+      const docs = extractDocsFromText(val);
+      docs.forEach(d => {
+        addRecord(d.original, d.digits, "xlsx");
+        foundCount++;
+      });
+    }
+    const pct = Math.round((processed/total)*100);
+    progressFill.style.width = pct + "%";
+    progressCounts.textContent = "Processados: " + processed.toLocaleString("pt-BR") + " · Encontrados: " + foundCount.toLocaleString("pt-BR");
 
-        // Exibir dados
-        function displayData(data) {
-            document.getElementById('centroCustos').textContent = data.centroCustos || '-';
-            document.getElementById('numeroPedido').textContent = data.numeroPedido || '-';
-            document.getElementById('dataPedido').textContent = data.dataPedido || '-';
-            document.getElementById('totalPedido').textContent = 'R$ ' + data.total.toFixed(2).replace('.', ',');
+    if(idx < total){
+      requestAnimationFrame(step);
+    } else {
+      progressText.textContent = "Concluído";
+      setTimeout(() => progressWrap.classList.remove("active"), 1200);
+      recomputeDuplicates();
+      applyDedupeIfNeeded();
+      updateDashboard();
+      currentPage = 1;
+      renderTable();
+      if(foundCount === 0){
+        showToast("Nenhuma ocorrência de CPF/CNPJ encontrada.", true);
+      } else {
+        showToast(foundCount.toLocaleString("pt-BR") + " documento(s) encontrado(s).");
+      }
+    }
+  }
+  requestAnimationFrame(step);
+}
 
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+document.getElementById("removeDupOpt").addEventListener("change", () => {
+  recomputeDuplicates();
+  applyDedupeIfNeeded();
+  updateDashboard();
+  currentPage = 1;
+  renderTable();
+});
 
-            data.items.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.numero}</td>
-                    <td>${item.descricao}</td>
-                    <td>${item.unidade}</td>
-                    <td class="number-cell">${item.quantidade.toFixed(2).replace('.', ',')}</td>
-                    <td class="number-cell">R$ ${item.unitario.toFixed(2).replace('.', ',')}</td>
-                    <td class="number-cell">R$ ${item.total.toFixed(2).replace('.', ',')}</td>
-                `;
-                tbody.appendChild(row);
-            });
+/* ===================== TABELA / FILTROS / PAGINAÇÃO ===================== */
+const tableWrap = document.getElementById("tableWrap");
+const paginationEl = document.getElementById("pagination");
+const searchInput = document.getElementById("searchInput");
 
-            // Adicionar linha de total
-            const totalRow = document.createElement('tr');
-            totalRow.className = 'total-row';
-            totalRow.innerHTML = `
-                <td colspan="5" style="text-align: right;">TOTAL:</td>
-                <td class="number-cell">R$ ${data.total.toFixed(2).replace('.', ',')}</td>
-            `;
-            tbody.appendChild(totalRow);
+document.querySelectorAll(".filter-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentFilter = tab.getAttribute("data-filter");
+    currentPage = 1;
+    renderTable();
+  });
+});
 
-            dataSection.style.display = 'block';
-        }
+let searchDebounce = null;
+searchInput.addEventListener("input", () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    searchTerm = searchInput.value.trim();
+    currentPage = 1;
+    renderTable();
+  }, 150);
+});
 
-        // Exportar para Excel
-        function exportToExcel() {
-            if (!extractedData || extractedData.items.length === 0) {
-                showMessage('❌ Nenhum dado para exportar.', 'error');
-                return;
-            }
+function getFilteredRecords(){
+  return records.filter(r => {
+    if(currentFilter === "cpf" && r.tipo !== "CPF") return false;
+    if(currentFilter === "cnpj" && r.tipo !== "CNPJ") return false;
+    if(currentFilter === "dup" && !r.duplicate) return false;
+    if(currentFilter === "err" && !r.invalid) return false;
+    if(searchTerm && !r.digits.includes(onlyDigits(searchTerm)) && !r.original.includes(searchTerm)) return false;
+    return true;
+  });
+}
 
-            const ws_data = [
-                ['PEDIDO DE COMPRA - EXTRAÇÃO DE DADOS'],
-                [],
-                ['Centro de Custos:', extractedData.centroCustos],
-                ['Número do Pedido:', extractedData.numeroPedido],
-                ['Data do Pedido:', extractedData.dataPedido],
-                ['Total:', extractedData.total],
-                [],
-                ['Item #', 'Descrição', 'Unidade', 'Quantidade', '$ Unit', 'Valor Total']
-            ];
+function renderTable(){
+  const filtered = getFilteredRecords();
 
-            extractedData.items.forEach(item => {
-                ws_data.push([
-                    item.numero,
-                    item.descricao,
-                    item.unidade,
-                    item.quantidade,
-                    item.unitario,
-                    item.total
-                ]);
-            });
+  if(!filtered.length){
+    tableWrap.innerHTML = `<div class="empty-state">
+      <div class="glyph">#</div>
+      <p>${records.length ? "Nenhum registro corresponde ao filtro atual." : "Nenhum registro processado ainda. Digite um documento acima ou importe uma planilha."}</p>
+    </div>`;
+    paginationEl.style.display = "none";
+    return;
+  }
 
-            ws_data.push([]);
-            ws_data.push(['', '', '', '', 'TOTAL GERAL', extractedData.total]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if(currentPage > totalPages) currentPage = totalPages;
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
 
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  let html = `<table class="results"><thead><tr>
+    <th style="width:56px;">Nº</th>
+    <th style="width:90px;">Tipo</th>
+    <th>Original</th>
+    <th>Somente números</th>
+    <th style="width:100px;">Ação</th>
+  </tr></thead><tbody>`;
 
-            // Formatação de colunas
-            ws['!cols'] = [
-                { wch: 8 },   // Item #
-                { wch: 30 },  // Descrição
-                { wch: 12 },  // Unidade
-                { wch: 15 },  // Quantidade
-                { wch: 15 },  // $ Unit
-                { wch: 15 }   // Valor Total
-            ];
+  pageItems.forEach((r, i) => {
+    let badge = "";
+    if(r.tipo === "CPF") badge = `<span class="badge cpf">CPF</span>`;
+    else if(r.tipo === "CNPJ") badge = `<span class="badge cnpj">CNPJ</span>`;
+    else badge = `<span class="badge err">Inválido</span>`;
 
-            XLSX.utils.book_append_sheet(wb, ws, 'Pedido');
+    let extraBadges = "";
+    if(r.duplicate) extraBadges += ` <span class="badge dup">Duplicado</span>`;
+    if(r.invalid) extraBadges += ` <span class="badge err">Qtd. incompatível</span>`;
 
-            const fileName = `pedido_${extractedData.numeroPedido.replace(/\//g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-            XLSX.writeFile(wb, fileName);
+    html += `<tr>
+      <td>${startIdx + i + 1}</td>
+      <td>${badge}</td>
+      <td class="orig">${escapeHtml(r.original)}</td>
+      <td class="digits-cell">${escapeHtml(r.digits)}${extraBadges}</td>
+      <td><button class="btn-copy-small" data-copy="${escapeHtml(r.digits)}">Copiar</button></td>
+    </tr>`;
+  });
 
-            showMessage('✅ Arquivo Excel exportado com sucesso!', 'success');
-        }
+  html += "</tbody></table>";
+  tableWrap.innerHTML = html;
 
-        // Resetar formulário
-        function resetForm() {
-            fileInput.value = '';
-            dataSection.style.display = 'none';
-            message.innerHTML = '';
-            extractedData = null;
-            progressContainer.style.display = 'none';
-        }
+  // pagination controls
+  if(totalPages > 1){
+    paginationEl.style.display = "flex";
+    paginationEl.innerHTML = `
+      <button id="pgFirst" ${currentPage===1?"disabled":""}>« Primeira</button>
+      <button id="pgPrev" ${currentPage===1?"disabled":""}>‹ Anterior</button>
+      <span>Página ${currentPage} de ${totalPages}</span>
+      <button id="pgNext" ${currentPage===totalPages?"disabled":""}>Próxima ›</button>
+      <button id="pgLast" ${currentPage===totalPages?"disabled":""}>Última »</button>
+    `;
+    document.getElementById("pgFirst").onclick = () => { currentPage = 1; renderTable(); };
+    document.getElementById("pgPrev").onclick = () => { currentPage--; renderTable(); };
+    document.getElementById("pgNext").onclick = () => { currentPage++; renderTable(); };
+    document.getElementById("pgLast").onclick = () => { currentPage = totalPages; renderTable(); };
+  } else {
+    paginationEl.style.display = "none";
+  }
+}
 
-        // Mostrar mensagem
-        function showMessage(text, type) {
-            message.className = 'message ' + type;
-            message.innerHTML = text;
-            message.style.display = 'flex';
-        }
+tableWrap.addEventListener("click", (e) => {
+  const btn = e.target.closest(".btn-copy-small");
+  if(!btn) return;
+  const val = btn.getAttribute("data-copy");
+  copyText(val).then(() => {
+    const original = btn.textContent;
+    btn.textContent = "Copiado!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 1200);
+  });
+});
 
-        // Atualizar progresso
-        function showProgress(show) {
-            progressContainer.style.display = show ? 'block' : 'none';
-        }
+/* ===================== AÇÕES GLOBAIS ===================== */
+document.getElementById("btnClear").addEventListener("click", () => {
+  if(!records.length) { showToast("Não há resultados para limpar.", true); return; }
+  records = [];
+  idCounter = 0;
+  currentPage = 1;
+  manualInput.value = "";
+  manualResults.innerHTML = "";
+  typePill.className = "type-pill";
+  typePill.textContent = "Aguardando entrada";
+  fileChipWrap.innerHTML = "";
+  fileInput.value = "";
+  updateDashboard();
+  renderTable();
+  showToast("Resultados limpos.");
+});
 
-        function updateProgress(current, total, text) {
-            const percentage = (current / total) * 100;
-            progressFill.style.width = percentage + '%';
-            progressText.textContent = text;
-        }
+document.getElementById("btnCopyAll").addEventListener("click", () => {
+  const filtered = getFilteredRecords();
+  if(!filtered.length){ showToast("Nenhum registro para copiar.", true); return; }
+  const text = filtered.map(r => r.digits).join("\n");
+  copyText(text).then(() => showToast(filtered.length.toLocaleString("pt-BR") + " documento(s) copiado(s)."));
+});
 
-        // Inicializar Tesseract
-        console.log('Sistema de extração de pedidos carregado.');
-        console.log('Usando Tesseract.js para OCR em PDFs escaneados.');
-    </script>
+document.getElementById("btnExport").addEventListener("click", () => {
+  const filtered = getFilteredRecords();
+  if(!filtered.length){ showToast("Nenhum registro para exportar.", true); return; }
+
+  // Build sheet data as plain values only, documents forced to text (string)
+  // type so Excel never converts them to numbers and strips leading zeros.
+  const aoa = [["Nº", "Tipo", "Documento"]];
+  filtered.forEach((r, i) => {
+    aoa.push([i + 1, r.tipo === "—" ? "Inválido" : r.tipo, r.digits]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Force column C (Documento) to be stored as text type ("s") for every row,
+  // preventing Excel from reinterpreting leading-zero documents as numbers.
+  for(let r = 1; r <= filtered.length; r++){
+    const cellRef = XLSX.utils.encode_cell({ r: r, c: 2 });
+    if(ws[cellRef]){
+      ws[cellRef].t = "s";
+      ws[cellRef].z = "@";
+      ws[cellRef].v = String(ws[cellRef].v);
+    }
+  }
+  ws["!cols"] = [{ wch: 6 }, { wch: 10 }, { wch: 20 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "CPF_CNPJ");
+  XLSX.writeFile(wb, "CPF_CNPJ_NORMALIZADOS.xlsx", { bookType: "xlsx", type: "file" });
+  showToast("Excel exportado: " + filtered.length.toLocaleString("pt-BR") + " registro(s).");
+});
+
+/* init */
+updateDashboard();
+renderTable();
+
+})();
+</script>
 </body>
 </html>
